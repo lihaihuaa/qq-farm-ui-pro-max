@@ -8,151 +8,7 @@
 ![Redis](https://img.shields.io/badge/Redis-6.0-red)
 ![License](https://img.shields.io/badge/License-ISC-yellow)
 
-![系统架构图](pic/architecture.svg)
-
 ---
-
-## 🎉 最近更新
-
-### v3.7.0 - 蹲守偷菜架构实现 (2026-03-02)
-- ✅ **精准蹲守机制**: 可自定义防风控延迟时间（0-60s）并自动分析未来4小时的好友农田成熟时刻表。
-- ✅ **多线程挂载**: 引入纯粹并行的 `friendScheduler` 定时器，互不阻塞地完成到点秒取操作。
-
-### v3.6.0 - 极速挂载与端云同步架构 (2026-03-01)
-- ✅ **Asset Chunking 极速拉起**: 为弹窗级组件启用异步加载墙，首屏秒开。
-- ✅ **防抖端云追踪**: 解决切设备导致主题与性能模式重置覆盖的问题。
-
-### v3.5.2 - UI 重构防锁死安全加固 (2026-03-01)
-- ✅ **API密钥脱敏**: 采用 `.env` 全面接管并提取隔离所有第三方轮询通讯中的敏感配置。
-
-### v3.4.0 - UI 架构大重构与体验版放发 (2026-03-01)
-- ✅ 本地界面新增“免费领取体验卡”逻辑及自动补全交互支持。
-- ✅ 提取全局挂载的高级换肤抽屉，并加入偷菜参数高级选择视窗。
-
-### v3.3.3 - 回归修复：深色模式兼容性与性能模式覆盖遗漏 (2026-03-01)
-
-**修复内容：**
-- ✅ 修复 `HelpCenter.vue` 独立重定义 `backdrop-filter`，不受性能模式管控
-- ✅ 修复 `Friends.vue` Scoped CSS 中 `.dark` 选择器无法匹配 `<html>` 祖先
-- ✅ 修复 `NotificationModal.vue` 底部动作条样式被意外修改
-
-**涉及文件：** `HelpCenter.vue` / `Friends.vue` / `NotificationModal.vue`
-
----
-
-### v3.3.2 - Chrome 闪烁修复与性能模式全面增强 (2026-03-01)
-
-**闪烁根因修复：**
-- ✅ 移除 `glass-panel` 的 `will-change`，改用 `contain: layout style paint`
-- ✅ 降低 `mesh-orb` 光球模糊值 `blur(80px)` → `blur(60px)` + `opacity: 0.4`
-- ✅ 降低 `HelpButton` 脉冲动画频率 `2s` → `4s` + 悬停暂停
-
-**性能模式全面增强：**
-- ✅ 追加全局 `animation-duration: 0s !important` + `transition-duration: 0s !important`
-- ✅ 追加 `will-change: auto !important` + `contain: none !important` 强制重置
-- ✅ 覆盖 `*` / `*::before` / `*::after` 所有伪元素
-
-**涉及文件：** `style.css` / `HelpButton.vue`
-
----
-
-### v3.3.1 - 好友列表按钮统一与公告弹窗品牌增强 (2026-03-01)
-
-**好友列表按钮 UI 统一：**
-- ✅ 引入 `op-btn` 基础类 + 6 种颜色变体（偷取 - 蓝/浇水 - 青/除草 - 绿/除虫 - 橙/捣乱 - 红/黑名单 - 灰）
-- ✅ 修复「除草」按钮与其他按钮形状不一致的问题
-- ✅ 修复「加入黑名单」按钮深色模式下可读性差的问题
-
-**公告弹窗品牌信息：**
-- ✅ 在「更新公告」弹窗底部注入作者防伪水印（Author: smdk000 | QQ 群:227916149）
-
-**涉及文件：** `Friends.vue` / `NotificationModal.vue` / `BaseSwitch.vue` / `Settings.vue`
-
----
-
-### v3.3.0 - 自动控制功能提示与推荐建议系统 (2026-03-01)
-
-- ✅ `BaseSwitch.vue` 新增 `hint`/`recommend` prop + CSS Tooltip 气泡（零依赖）
-- ✅ `Settings.vue` 全部 18 个开关添加功能解释 + 推荐建议标签
-- ✅ 推荐标签三色区分：绿 (开) / 红 (关) / 橙 (视情况)
-
-**涉及文件：** `BaseSwitch.vue` / `Settings.vue`
-
----
-
-### v3.2.9 - 令牌桶进阶优化：紧急通道 & 冗余 Sleep 清理 (2026-03-01)
-
-**防偷抢收紧急通道 (P0)：**
-- ✅ 新增 `sendMsgAsyncUrgent` 紧急通道（队头插入），防偷不再被好友巡查长队列阻塞
-- ✅ `farm.js` 新增 `getAllLandsUrgent` / `fertilizeUrgent` / `harvestUrgent` 紧急版 API
-- ✅ `antiStealHarvest` 全部改用紧急通道
-
-**冗余 Sleep 清理 (P1)：**
-- ✅ 移除 `farm.js` 中 2 处 + `friend.js` 中 5 处冗余 sleep（共 7 处）
-- ✅ 保留 3 处经验值检测 sleep（业务逻辑等待）
-
-**队列深度监控 (P2)：**
-- ✅ 排队超过 5 帧时自动打印警告日志
-
-**涉及文件：** `network.js` / `farm.js` / `friend.js`
-
----
-
-### v3.2.8 - 性能优化：SQLite 防争用 & WebSocket 3QPS 令牌桶限流 (2026-02-28)
-
-**SQLite 防争用增强：**
-- ✅ 追加 `busy_timeout = 5000`：并发写入遇锁时自旋最多 5 秒，避免直接抛 `SQLITE_BUSY`
-- ✅ 追加 `wal_autocheckpoint = 1000`：每累积 1000 页自动合并 WAL，防止 `.db-wal` 膨胀
-
-**WebSocket 令牌桶限流器：**
-- ✅ 在 `sendMsgAsync` 前注入 Token Bucket 异步排队网关
-- ✅ 所有业务请求强制以 **3 QPS（每帧 ≥ 334ms）** 匀速发出
-- ✅ 心跳同步 `sendMsg` 不受限流影响
-
-**涉及文件：** `database.js` / `network.js`
-
----
-
-## 🎉 历史版本功能（v3.2.5）
-
-### 底层与存储基建 (v3.2.5)
-- ✅ 数据库原生支持版本迁移架构
-- ✅ 引入轻量级 Cron 自动化释放老旧日志，降低 SQLite 读写耗时
-- ✅ 前端列表操作状态按需记忆并启用防抖
-- ✅ 配置非范式 JSON 弹性扩容化
-
-### 多用户系统
-- ✅ 用户注册/登录
-- ✅ 卡密管理系统（天卡/周卡/月卡/永久卡）
-- ✅ 用户权限控制（管理员/普通用户）
-- ✅ 账号续费功能
-- ✅ 用户状态管理（正常/封禁/过期）
-
-### 偷菜过滤增强
-- ✅ 植物黑名单/白名单
-- ✅ 好友黑名单/白名单
-- ✅ 可视化多选界面
-- ✅ 实时配置保存
-
-### 智能自动化
-- ✅ 自动同意好友请求
-- ✅ 60 秒防偷与抢收保护
-- ✅ 两季作物智能识别（不误铲第二季）
-- ✅ 自动领取任务奖励
-
-### 界面优化
-- ✅ 玻璃态UI (Glassmorphism) 全站渲染重构，提供完美沉浸感
-- ✅ GPU 硬件加速的流动网格渐变背景（流畅降耗无闪白）
-- ✅ 全新左下角响应式主题设置侧拉抽屉 
-- ✅ 5 大高定系统变色主题（御农翠绿、赛博紫、黯金黄、深海蓝、猛男粉）
-- ✅ UI/UX 文字全对比度校准，白天与深色模式自适应修正
-- ✅ 修复跨页面/菜单跳转时颜色配置重置失效的深层数据同步缺陷
-- ✅ 修复全站毛玻璃渲染动画闪烁并增加系统性能极简自适应机制
-- ✅ 全新登录/注册页面
-- ✅ 用户信息卡片
-- ✅ 用户管理页面
-- ✅ 卡密管理页面
-- ✅ 帮助中心系统
 
 ## 技术栈
 
@@ -270,7 +126,7 @@
 - 深色 / 浅色主题切换
 - 响应式设计，支持移动端访问
 
-![Dashboard](pic/dashboard.svg)
+![Dashboard](pic/截图1.png)
 
 ### 分析页
 支持按以下维度排序作物：
@@ -278,7 +134,7 @@
 - 净利润效率 / 普通肥净利润效率
 - 等级要求
 
-![分析页面](pic/analytics.svg)
+![分析页面](pic/截图2.png)
 
 ### 帮助中心
 - 新手入门指南
@@ -287,7 +143,7 @@
 - 故障排查指南
 - 配置模板推荐
 
-![帮助中心](pic/help-center.svg)
+![帮助中心](pic/截图3.png)
 
 ---
 
@@ -375,367 +231,74 @@ ADMIN_PASSWORD='你的强密码' pnpm dev:core
 - 本机：`http://localhost:3000`
 - 局域网：`http://<你的 IP>:3000`
 
-![设置页面](pic/settings.svg)
+![设置页面](pic/截图4.png)
 
 ---
 
-# 🐳 Docker 部署完整指南（整合版）
+# 🐳 跨平台 Docker 一键部署指南 (V3 终局版)
 
-## 🚀 快速开始（三种方法）
+本项目全架构拥抱 Docker 化并原生支持 **linux/amd64 (x86_64)** 与 **linux/arm64**，搭载强隔离式 MySQL 与 Redis 的完整集群体系。
 
-### 方法 1: 一键部署脚本（最简单 ✅ 推荐）
+## 🚀 推荐：单行脚本一键部署 (App + MySQL + Redis)
 
-**ARM64 服务器**（树莓派/鲲鹏/飞腾）:
+无论您使用的是 Intel/AMD 服务器、还是类似甲骨文/树莓派等 ARM 架构的机器，请直接在终端中执行以下命令：
+
+**如果您的服务器是 x86_64（例如常见 Intel / AMD 云服务器）：**
 ```bash
-curl -O https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/main/scripts/deploy-arm.sh
-chmod +x deploy-arm.sh
-./deploy-arm.sh
+curl -O https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/main/scripts/deploy-x86.sh && chmod +x deploy-x86.sh && ./deploy-x86.sh
 ```
 
-**x86_64 服务器**（Intel/AMD）:
+**如果您的服务器是 ARM64（例如甲骨文 ARM，苹果 Mac，树莓派等）：**
 ```bash
-curl -O https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/main/scripts/deploy-x86.sh
-chmod +x deploy-x86.sh
-./deploy-x86.sh
+curl -O https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/main/scripts/deploy-arm.sh && chmod +x deploy-arm.sh && ./deploy-arm.sh
 ```
 
-**自定义配置**:
-```bash
-# 自定义密码和端口
-ADMIN_PASSWORD=YourStrongPassword123! PORT=3081 ./deploy-arm.sh
-```
+### 💡 极强健壮性：空载数据库零干预启动
+
+新部署环境下，只要您的内核支持运行 Docker，我们的架构已支持 **零干预空载启动**：
+- Docker 会自动拉取并启动专属微型 `MySQL` 节点与 `Redis` 哨兵。
+- 当 `App` 服务侦测到当前 `MySQL` 毫无数据时，将**自动初始化建库、注入多表 Schema 与缓存索引引擎**，100% 杜绝各类 "Table accounts doesn't exist" 的报错阻断。
+- 整个过程只需您静侯 2 分钟，在终端 `docker logs -f qq-farm-app` 中看到绿色的 `✅ MySQL 核心表结构自动初始化完成` 即为胜利！
+
+**该脚本的魔力在于：**
+1. 自动全生命周期检测防火墙、端口冲突并引导修复。
+2. 自动基于远端智能拉取匹配底层架构。
+3. （重要）在侦测到 ARM 架构（如 aarch64）时，将自动开启 `vm.overcommit_memory=1` 释放系统内存限额，防止 Redis 等依赖无故崩溃。
+4. 全自动在当前目录生成 `.env` 安全脱敏配置模板供后期微调。
 
 ---
 
-### 方法 2: Docker Compose（生产环境 ✅ 推荐）
+## 🛠 方法二：使用原生 Docker Compose 编排启动
 
-**步骤 1: 下载配置文件**
+如果您属于经验丰富的开发者并希望保持环境的纯净独立掌控权：
+
+**1. 下载完整编排配置并生成 `.env`**
 ```bash
 curl -O https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/main/docker-compose.prod.yml
+curl -o .env https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/main/.env.example
 ```
 
-**步骤 2: 启动服务**
+**2. 定制您的服务密码（强烈防黑客推荐）**
+您可以使用 `nano` 或 `vim` 编辑 `.env` 文件，任意修改 `ADMIN_PASSWORD`、数据库密文及相关系统级验证 Key（如 `WX_API_KEY`）。
+
+**3. 后台独立启动服务矩阵**
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-**步骤 3: 查看状态**
-```bash
-docker-compose -f docker-compose.prod.yml ps
-docker-compose -f docker-compose.prod.yml logs -f
-```
-
-**配置文件** (`docker-compose.prod.yml`):
-```yaml
-version: '3.8'
-
-services:
-  qq-farm-bot-ui:
-    image: smdk000/qq-farm-bot-ui:latest
-    container_name: qq-farm-bot-ui
-    restart: unless-stopped
-    ports:
-      - "3080:3000"
-    environment:
-      - ADMIN_PASSWORD=qq007qq008
-      - TZ=Asia/Shanghai
-      - NODE_ENV=production
-      - LOG_LEVEL=info
-    volumes:
-      - ./data:/app/core/data
-      - ./logs:/app/core/logs
-      - ./backup:/app/core/backup
-```
-
 ---
 
-### 方法 3: Docker 命令（灵活配置）
+## 🛡️ 数据安全与防丢失挂载声明
 
-```bash
-docker run -d \
-  --name qq-farm-bot-ui \
-  --restart unless-stopped \
-  -p 3080:3000 \
-  -v ./data:/app/core/data \
-  -v ./logs:/app/core/logs \
-  -v ./backup:/app/core/backup \
-  -e ADMIN_PASSWORD=qq007qq008 \
-  -e TZ=Asia/Shanghai \
-  -e LOG_LEVEL=info \
-  smdk000/qq-farm-bot-ui:latest
-```
+我们极端挂念所有农友的心血数据，为您做出了以下物理层面级的保障：
+- **MySQL 核心** 将被自动挂载于宿主机同级目录下的 `./mysql_data`。
+- **Redis 高速缓存** 映射至 `./redis_data` 并强制启用 AOF 增量同步断电续存。
+- **App 热配置** 落盘于 `./data` 中进行本地留痕冷备安全。
 
----
+> [!TIP]
+> 部署完成片刻后，当您通过 `docker ps` 看到 `qq-farm-app`、`qq-farm-mysql`、`qq-farm-redis` 军均处于 **Up (healthy)** 状态时，即代表部署大功告成！
 
-## 📊 验证部署成功
-
-### 检查清单
-
-```bash
-# 1. 检查容器状态
-docker ps
-
-# 2. 查看实时日志
-docker logs -f qq-farm-bot-ui
-
-# 3. 检查数据卷挂载
-docker inspect qq-farm-bot-ui | grep -A 10 Mounts
-
-# 4. 测试访问
-curl http://localhost:3080/api/ping
-```
-
-### 访问 Web 界面
-
-打开浏览器访问：`http://localhost:3080`
-
-- **默认用户名**: `admin`
-- **默认密码**: `qq007qq008`
-
----
-
-## 🏗️ Docker 多平台构建
-
-### 构建并推送到 Docker Hub 和 GitHub
-
-#### 1. 环境准备
-
-```bash
-# 检查 Docker 和 Buildx
-docker --version
-docker buildx version
-
-# 登录 Docker Hub
-docker login
-
-# 登录 GitHub Container Registry
-echo $GH_PAT | docker login ghcr.io -u smdk000 --password-stdin
-```
-
-#### 2. 构建多平台镜像
-
-**使用脚本构建（推荐）**:
-```bash
-chmod +x scripts/docker-build-and-push.sh
-./scripts/docker-build-and-push.sh v3.6.0
-```
-
-**手动构建**:
-```bash
-# 构建并推送到 Docker Hub
-docker buildx build \
-  --platform linux/amd64,linux/arm64 \
-  -t smdk000/qq-farm-bot-ui:3.6.0 \
-  -t smdk000/qq-farm-bot-ui:latest \
-  -f core/Dockerfile . \
-  --push
-
-# 构建并推送到 GitHub Container Registry
-docker buildx build \
-  --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/smdk000/qq-farm-bot-ui:3.6.0 \
-  -t ghcr.io/smdk000/qq-farm-bot-ui:latest \
-  -f core/Dockerfile . \
-  --push
-```
-
-#### 3. 验证构建
-
-```bash
-# 查看镜像信息
-docker manifest inspect smdk000/qq-farm-bot-ui:3.6.0
-
-# Docker Hub 查看
-# https://hub.docker.com/r/smdk000/qq-farm-bot-ui/tags
-
-# GitHub Packages 查看
-# https://github.com/users/smdk000/packages/container/package/qq-farm-bot-ui
-```
-
----
-
-## 🔄 版本升级
-
-### 从旧版本升级
-
-```bash
-# 1. 备份数据（重要！）
-tar -czf farm-bot-backup-$(date +%Y%m%d).tar.gz ./data
-
-# 2. 停止旧容器
-docker stop qq-farm-bot-ui
-docker rm qq-farm-bot-ui
-
-# 3. 拉取新镜像
-docker pull smdk000/qq-farm-bot-ui:latest
-
-# 4. 启动新容器
-./scripts/deploy-arm.sh  # 或 deploy-x86.sh
-```
-
----
-
-## 🛡️ 数据保护
-
-### 数据卷挂载说明
-
-| 宿主机路径 | 容器内路径 | 说明 |
-|-----------|-----------|------|
-| `./data` | `/app/core/data` | **核心数据库**（账号配置、用户数据） |
-| `./logs` | `/app/core/logs` | 日志文件（运行日志、操作日志） |
-| `./backup` | `/app/core/backup` | 备份文件目录 |
-
-### 备份策略
-
-**定期备份**:
-```bash
-# 每天凌晨 2 点备份
-0 2 * * * tar -czf /backup/farm-bot-$(date +\%Y\%m\%d).tar.gz ./data
-```
-
-**升级前备份**:
-```bash
-tar -czf farm-bot-backup-$(date +%Y%m%d).tar.gz ./data
-```
-
-**从备份恢复**:
-```bash
-tar -xzf farm-bot-backup-20260301.tar.gz -C ./data
-```
-
-### ⚠️ 重要提醒
-
-- ❌ **不要删除** `./data` 目录，否则所有数据将丢失
-- ❌ **不要手动修改** 数据库文件，可能导致数据损坏
-- ✅ **定期备份** 数据到安全位置
-- ✅ **升级前先备份**
-
----
-
-## ⚠️ 常见错误与解决方案
-
-### 错误 1: 镜像拉取失败 ❌
-
-**错误信息**:
-```
-Error response from daemon: pull access denied
-```
-
-**原因**: 
-- 使用了错误的镜像名称
-- Docker Hub 账号未登录
-
-**解决方案**:
-```bash
-# ✅ 正确的镜像名称
-docker pull smdk000/qq-farm-bot-ui:latest
-
-# ❌ 错误的镜像名称
-docker pull qq-farm-bot-ui:latest  # 缺少用户名
-
-# 如果需要登录
-docker login
-```
-
----
-
-### 错误 2: 端口被占用 ❌
-
-**错误信息**:
-```
-Error starting userland proxy: listen tcp 0.0.0.0:3080: bind: address already in use
-```
-
-**解决方案**:
-```bash
-# 检查端口占用
-lsof -i :3080
-
-# 使用不同端口
-export PORT=3081
-./scripts/deploy-arm.sh
-```
-
----
-
-### 错误 3: 权限错误 ❌
-
-**错误信息**:
-```
-permission denied while trying to connect to the Docker daemon socket
-```
-
-**解决方案**:
-```bash
-# 使用 sudo
-sudo ./scripts/deploy-arm.sh
-
-# 或将用户添加到 docker 组
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
----
-
-## 📊 多平台支持
-
-- ✅ **linux/amd64** - Intel/AMD x86_64 服务器
-- ✅ **linux/arm64** - ARM64 服务器（树莓派 4B/鲲鹏/飞腾等）
-
-Docker 会自动选择适合您系统架构的镜像版本。
-
----
-
-## 📝 配置说明
-
-### 环境变量
-
-| 变量名 | 说明 | 默认值 |
-|--------|------|--------|
-| `ADMIN_PASSWORD` | 管理员密码 | `qq007qq008` |
-| `TZ` | 时区 | `Asia/Shanghai` |
-| `LOG_LEVEL` | 日志级别 | `info` |
-| `NODE_ENV` | 运行环境 | `production` |
-
-### 端口映射
-
-| 容器端口 | 宿主机端口 | 说明 |
-|---------|-----------|------|
-| 3000 | 3080 | Web 界面访问端口 |
-
----
-
-## 📚 完整文档
-
-- **GitHub 仓库**: https://github.com/smdk000/qq-farm-ui-pro-max
-- **Docker Hub**: https://hub.docker.com/r/smdk000/qq-farm-bot-ui
-- **GitHub Packages**: https://github.com/users/smdk000/packages/container/package/qq-farm-bot-ui
-- **部署指南**: [DEPLOYMENT_GUIDE_v3.6.0.md](DEPLOYMENT_GUIDE_v3.6.0.md)
-- **故障排查**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-- **配置模板**: [docs/CONFIG_TEMPLATES.md](docs/CONFIG_TEMPLATES.md)
-
----
-
-## 🆘 获取帮助
-
-### 文档资源
-
-- [README.md](https://github.com/smdk000/qq-farm-ui-pro-max) - 项目说明
-- [DEPLOYMENT_FIX_REPORT.md](DEPLOYMENT_FIX_REPORT.md) - 部署问题修复报告
-- [DOCKER_BUILD_COMPLETE.md](DOCKER_BUILD_COMPLETE.md) - Docker 构建完成总结
-
-### 技术支持
-
-- **GitHub Issues**: https://github.com/smdk000/qq-farm-ui-pro-max/issues
-- **QQ 群**: 227916149
-- **Docker Hub**: https://hub.docker.com/r/smdk000/qq-farm-bot-ui
-
----
-
-**维护者**: smdk000  
-**最后更新**: 2026-03-02  
-**版本**: v3.8.0
-
+**现在，请在浏览器访问主节点：`http://<服务器外网IP>:3000`**
 ## 多用户模式
 
 ## 多用户模式
@@ -756,7 +319,7 @@ Docker 会自动选择适合您系统架构的镜像版本。
 3. 编辑用户（修改到期时间、启用/封禁）
 4. 删除普通用户
 
-![用户管理](pic/users.svg)
+![用户管理](pic/截图5.png)
 
 ### 普通用户操作
 
@@ -772,7 +335,7 @@ Docker 会自动选择适合您系统架构的镜像版本。
 3. 输入新卡密
 4. 确认续费
 
-![卡密管理](pic/cards.svg)
+![卡密管理](pic/截图6.png)
 
 ---
 
@@ -798,7 +361,7 @@ Docker 会自动选择适合您系统架构的镜像版本。
 6. 勾选好友（需先加载好友列表）
 7. 保存设置
 
-![偷菜设置](pic/steal-settings.svg)
+![偷菜设置](pic/截图7.png)
 
 ---
 
@@ -1094,4 +657,217 @@ ISC License
 
 ---
 
-**最后更新时间**：2026-03-01
+## 程序截图
+
+### 登录
+支持多模式验证、Token安全保护、体验卡自助领取与一键全自动登录入驻。
+
+![登录控制台1](pic/登录1.png)
+![登录控制台2](pic/登录2.png)
+![登录控制台3](pic/登录3.png)
+
+### 主题
+内置多种玻璃态 (Glassmorphism) 梦幻色彩主题，全面适配深浅双模与性能自适应。
+
+![主题切换1](pic/主题1.png)
+![主题切换2](pic/主题2.png)
+![主题切换3](pic/主题3.png)
+![主题切换4](pic/主题4.png)
+![主题切换5](pic/主题5.png)
+![主题切换6](pic/主题6.png)
+![主题切换7](pic/主题7.png)
+![主题切换8](pic/主题8.png)
+![主题切换9](pic/主题9.png)
+![主题切换10](pic/主题10.png)
+
+### 功能
+全网独家挂载系统，支持好友队列并行与精准到秒的农作物防风控安全蹲守拦截。
+
+![核心功能1](pic/功能1.png)
+![核心功能2](pic/功能2.png)
+![核心功能3](pic/功能3.png)
+![核心功能4](pic/功能4.png)
+![核心功能5](pic/功能5.png)
+![核心功能6](pic/功能6.png)
+![核心功能7](pic/功能7.png)
+![核心功能8](pic/功能8.png)
+![核心功能9](pic/功能9.png)
+![核心功能10](pic/功能10.png)
+![核心功能11](pic/功能11.png)
+![核心功能12](pic/功能12.png)
+![核心功能13](pic/功能13.png)
+![核心功能14](pic/功能14.png)
+![核心功能15](pic/功能15.png)
+![核心功能16](pic/功能16.png)
+![核心功能17](pic/功能17.png)
+
+---
+
+**最后更新时间**：2026-03-02
+---
+
+## 🚀 Iteration Logs (最近更新)
+
+### 2026-03-02 核心数据引擎重构与隔离修复 (v3.8.0)
+- **后端**
+  - MySQL & Redis 终局架构：彻底铲除基于 SQLite 与 accounts.json 的脆弱存储层。全量接入极速异步的 MySQL 连接池与 Redis 分布式机制。
+  - 数据源隔离屏障：重写核心控制器，利用高并发连接池特性解决大批量读取写入时的拥堵与撞锁风险；从根源处保障系统的高健壮性与越权阻断。
+- **前端**
+  - 断尾清理与UI鉴权拦截隔离，全盘保障稳定。
+
+### 2026-03-02 蹲守偷菜与精准打击架构 (v3.7.0)
+- **高级防守与进攻**：在“偷菜设置”中全新加入“蹲守偷菜”策略模块！支持开关控制并可自定义延迟（0-60秒），极大增强拟真感。
+- **智能感知**：自动倒推好友土地成熟时间表，在列表上直观监控。
+
+### 2026-03-01 极速挂载与端云同步架构 (v3.6.0)
+- **端云同步时间机器**：彻底解决在多设备间切换账号时的偏好设置冲突。
+- **首屏秒开级切片**：采用组件级并行级按需加载方案，首屏速度大幅度提升。
+
+### 2026-03-01 扫码重构与防风控限流机制 (v3.5.2)
+- **API密钥脱敏与隔离**：彻底剥离硬编码调用，通过强类型 `.env WX_API_KEY` 注入拦截非法利用。
+- **令牌桶防拥堵**：针对 WebSocket 限流网关重构为 3QPS 原生令牌桶排队削峰架构。
+
+## 🎉 最近更新
+
+### v3.7.0 - 蹲守偷菜架构实现 (2026-03-02)
+- ✅ **精准蹲守机制**: 可自定义防风控延迟时间（0-60s）并自动分析未来4小时的好友农田成熟时刻表。
+- ✅ **多线程挂载**: 引入纯粹并行的 `friendScheduler` 定时器，互不阻塞地完成到点秒取操作。
+
+### v3.6.0 - 极速挂载与端云同步架构 (2026-03-01)
+- ✅ **Asset Chunking 极速拉起**: 为弹窗级组件启用异步加载墙，首屏秒开。
+- ✅ **防抖端云追踪**: 解决切设备导致主题与性能模式重置覆盖的问题。
+
+### v3.5.2 - UI 重构防锁死安全加固 (2026-03-01)
+- ✅ **API密钥脱敏**: 采用 `.env` 全面接管并提取隔离所有第三方轮询通讯中的敏感配置。
+
+### v3.4.0 - UI 架构大重构与体验版放发 (2026-03-01)
+- ✅ 本地界面新增“免费领取体验卡”逻辑及自动补全交互支持。
+- ✅ 提取全局挂载的高级换肤抽屉，并加入偷菜参数高级选择视窗。
+
+### v3.3.3 - 回归修复：深色模式兼容性与性能模式覆盖遗漏 (2026-03-01)
+
+**修复内容：**
+- ✅ 修复 `HelpCenter.vue` 独立重定义 `backdrop-filter`，不受性能模式管控
+- ✅ 修复 `Friends.vue` Scoped CSS 中 `.dark` 选择器无法匹配 `<html>` 祖先
+- ✅ 修复 `NotificationModal.vue` 底部动作条样式被意外修改
+
+**涉及文件：** `HelpCenter.vue` / `Friends.vue` / `NotificationModal.vue`
+
+---
+
+### v3.3.2 - Chrome 闪烁修复与性能模式全面增强 (2026-03-01)
+
+**闪烁根因修复：**
+- ✅ 移除 `glass-panel` 的 `will-change`，改用 `contain: layout style paint`
+- ✅ 降低 `mesh-orb` 光球模糊值 `blur(80px)` → `blur(60px)` + `opacity: 0.4`
+- ✅ 降低 `HelpButton` 脉冲动画频率 `2s` → `4s` + 悬停暂停
+
+**性能模式全面增强：**
+- ✅ 追加全局 `animation-duration: 0s !important` + `transition-duration: 0s !important`
+- ✅ 追加 `will-change: auto !important` + `contain: none !important` 强制重置
+- ✅ 覆盖 `*` / `*::before` / `*::after` 所有伪元素
+
+**涉及文件：** `style.css` / `HelpButton.vue`
+
+---
+
+### v3.3.1 - 好友列表按钮统一与公告弹窗品牌增强 (2026-03-01)
+
+**好友列表按钮 UI 统一：**
+- ✅ 引入 `op-btn` 基础类 + 6 种颜色变体（偷取 - 蓝/浇水 - 青/除草 - 绿/除虫 - 橙/捣乱 - 红/黑名单 - 灰）
+- ✅ 修复「除草」按钮与其他按钮形状不一致的问题
+- ✅ 修复「加入黑名单」按钮深色模式下可读性差的问题
+
+**公告弹窗品牌信息：**
+- ✅ 在「更新公告」弹窗底部注入作者防伪水印（Author: smdk000 | QQ 群:227916149）
+
+**涉及文件：** `Friends.vue` / `NotificationModal.vue` / `BaseSwitch.vue` / `Settings.vue`
+
+---
+
+### v3.3.0 - 自动控制功能提示与推荐建议系统 (2026-03-01)
+
+- ✅ `BaseSwitch.vue` 新增 `hint`/`recommend` prop + CSS Tooltip 气泡（零依赖）
+- ✅ `Settings.vue` 全部 18 个开关添加功能解释 + 推荐建议标签
+- ✅ 推荐标签三色区分：绿 (开) / 红 (关) / 橙 (视情况)
+
+**涉及文件：** `BaseSwitch.vue` / `Settings.vue`
+
+---
+
+### v3.2.9 - 令牌桶进阶优化：紧急通道 & 冗余 Sleep 清理 (2026-03-01)
+
+**防偷抢收紧急通道 (P0)：**
+- ✅ 新增 `sendMsgAsyncUrgent` 紧急通道（队头插入），防偷不再被好友巡查长队列阻塞
+- ✅ `farm.js` 新增 `getAllLandsUrgent` / `fertilizeUrgent` / `harvestUrgent` 紧急版 API
+- ✅ `antiStealHarvest` 全部改用紧急通道
+
+**冗余 Sleep 清理 (P1)：**
+- ✅ 移除 `farm.js` 中 2 处 + `friend.js` 中 5 处冗余 sleep（共 7 处）
+- ✅ 保留 3 处经验值检测 sleep（业务逻辑等待）
+
+**队列深度监控 (P2)：**
+- ✅ 排队超过 5 帧时自动打印警告日志
+
+**涉及文件：** `network.js` / `farm.js` / `friend.js`
+
+---
+
+### v3.2.8 - 性能优化：SQLite 防争用 & WebSocket 3QPS 令牌桶限流 (2026-02-28)
+
+**SQLite 防争用增强：**
+- ✅ 追加 `busy_timeout = 5000`：并发写入遇锁时自旋最多 5 秒，避免直接抛 `SQLITE_BUSY`
+- ✅ 追加 `wal_autocheckpoint = 1000`：每累积 1000 页自动合并 WAL，防止 `.db-wal` 膨胀
+
+**WebSocket 令牌桶限流器：**
+- ✅ 在 `sendMsgAsync` 前注入 Token Bucket 异步排队网关
+- ✅ 所有业务请求强制以 **3 QPS（每帧 ≥ 334ms）** 匀速发出
+- ✅ 心跳同步 `sendMsg` 不受限流影响
+
+**涉及文件：** `database.js` / `network.js`
+
+---
+
+## 🎉 历史版本功能（v3.2.5）
+
+### 底层与存储基建 (v3.2.5)
+- ✅ 数据库原生支持版本迁移架构
+- ✅ 引入轻量级 Cron 自动化释放老旧日志，降低 SQLite 读写耗时
+- ✅ 前端列表操作状态按需记忆并启用防抖
+- ✅ 配置非范式 JSON 弹性扩容化
+
+### 多用户系统
+- ✅ 用户注册/登录
+- ✅ 卡密管理系统（天卡/周卡/月卡/永久卡）
+- ✅ 用户权限控制（管理员/普通用户）
+- ✅ 账号续费功能
+- ✅ 用户状态管理（正常/封禁/过期）
+
+### 偷菜过滤增强
+- ✅ 植物黑名单/白名单
+- ✅ 好友黑名单/白名单
+- ✅ 可视化多选界面
+- ✅ 实时配置保存
+
+### 智能自动化
+- ✅ 自动同意好友请求
+- ✅ 60 秒防偷与抢收保护
+- ✅ 两季作物智能识别（不误铲第二季）
+- ✅ 自动领取任务奖励
+
+### 界面优化
+- ✅ 玻璃态UI (Glassmorphism) 全站渲染重构，提供完美沉浸感
+- ✅ GPU 硬件加速的流动网格渐变背景（流畅降耗无闪白）
+- ✅ 全新左下角响应式主题设置侧拉抽屉 
+- ✅ 5 大高定系统变色主题（御农翠绿、赛博紫、黯金黄、深海蓝、猛男粉）
+- ✅ UI/UX 文字全对比度校准，白天与深色模式自适应修正
+- ✅ 修复跨页面/菜单跳转时颜色配置重置失效的深层数据同步缺陷
+- ✅ 修复全站毛玻璃渲染动画闪烁并增加系统性能极简自适应机制
+- ✅ 全新登录/注册页面
+- ✅ 用户信息卡片
+- ✅ 用户管理页面
+- ✅ 卡密管理页面
+- ✅ 帮助中心系统
+
+
+> 历史迭代记录可前往仓库内的 `UPDATE_LOG.md` 或 `CHANGELOG.md` 检阅。
