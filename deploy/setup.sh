@@ -110,18 +110,24 @@ fi
 echo ""
 echo "🚀 启动所有服务（正在拉取 Docker 镜像，这可能需要较长时间）..."
 
-# 尝试拉取镜像并捕获常见错误（如镜像源 403 禁用）
+# 尝试拉取镜像
 if ! docker compose pull; then
     echo ""
-    echo -e "${RED}❌ 镜像拉取失败！${NC}"
+    echo -e "${RED}❌ 镜像拉取超时或失败！${NC}"
     echo "------------------------------------------"
     echo -e "${YELLOW}诊断提示：${NC}"
-    echo "检测到拉取错误。这通常是因为您的服务器配置了失效的 Docker 镜像源（如 daocloud.io）。"
+    echo "您的服务器目前无法直连 Docker Hub (registry-1.docker.io)。"
     echo ""
-    echo "请尝试执行以下命令重置镜像源（使用 Docker 官方源）："
-    echo -e "${GREEN}sudo rm -f /etc/docker/daemon.json && sudo systemctl restart docker${NC}"
+    echo "建议配置国内镜像加速器，请尝试执行以下命令："
     echo ""
-    echo "或者使用可靠的国内加速器后再运行此脚本。"
+    echo -e "${GREEN}# 配置多个高质量国内源 (阿里/南大/腾讯等)"
+    echo -e "sudo mkdir -p /etc/docker"
+    echo -e "sudo tee /etc/docker/daemon.json <<-'EOF'"
+    echo -e '{"registry-mirrors": ["https://6kx4zyno.mirror.aliyuncs.com", "https://docker.nju.edu.cn", "https://mirror.ccs.tencentyun.com"]}'
+    echo -e "EOF"
+    echo -e "sudo systemctl daemon-reload && sudo systemctl restart docker${NC}"
+    echo ""
+    echo "配置完成后，再次运行本脚本即可成功。"
     echo "------------------------------------------"
     exit 1
 fi
