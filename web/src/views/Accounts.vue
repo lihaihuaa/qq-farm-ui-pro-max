@@ -22,6 +22,51 @@ const deleteLoading = ref(false)
 const editingAccount = ref<any>(null)
 const accountToDelete = ref<any>(null)
 
+// 批量操作状态
+const selectedAccountIds = ref<string[]>([])
+
+function isSelected(id: string) {
+  return selectedAccountIds.value.includes(id)
+}
+
+function toggleSelection(id: string) {
+  const index = selectedAccountIds.value.indexOf(id)
+  if (index > -1) {
+    selectedAccountIds.value.splice(index, 1)
+  } else {
+    selectedAccountIds.value.push(id)
+  }
+}
+
+function selectAll() {
+  selectedAccountIds.value = accounts.value.map(acc => acc.id)
+}
+
+function invertSelection() {
+  const allIds = accounts.value.map(acc => acc.id)
+  selectedAccountIds.value = allIds.filter(id => !selectedAccountIds.value.includes(id))
+}
+
+function clearSelection() {
+  selectedAccountIds.value = []
+}
+
+const batchLoading = ref(false)
+async function bulkSetMode(mode: string) {
+  if (selectedAccountIds.value.length === 0) return
+  try {
+    batchLoading.value = true
+    for (const id of selectedAccountIds.value) {
+      await accountStore.updateAccountMode(id, mode)
+    }
+  } catch (e: any) {
+    alert('批量设置失败: ' + e.message)
+  } finally {
+    batchLoading.value = false
+    clearSelection()
+  }
+}
+
 onMounted(() => {
   accountStore.fetchAccounts()
 })
@@ -127,6 +172,64 @@ async function handleSafeCheck(acc: any) {
       </BaseButton>
     </div>
 
+    <!-- 批量操作面板 -->
+    <div v-if="accounts.length > 0" class="mb-4 flex items-center justify-between glass-panel rounded-lg p-3 shadow-sm">
+      <div class="flex items-center gap-2">
+        <BaseButton
+          size="sm"
+          class="border-0 from-blue-500 to-blue-600 bg-gradient-to-r text-xs text-white font-bold shadow-blue-500/25 shadow-md transition-all hover:from-blue-600 hover:to-blue-700 !px-4 !py-1.5 dark:shadow-blue-500/40 hover:shadow-blue-500/40 hover:shadow-lg"
+          @click="selectAll"
+        >
+          <div class="i-carbon-checkmark-outline mr-1.5 text-sm" /> 全选
+        </BaseButton>
+        <BaseButton
+          size="sm"
+          class="border border-gray-300/50 bg-black/5 dark:bg-white/5 text-xs font-bold transition-all hover:bg-black/10 dark:hover:bg-white/10 !px-4 !py-1.5"
+          @click="invertSelection"
+        >
+          反选
+        </BaseButton>
+        <BaseButton
+          size="sm"
+          class="border-0 from-red-500 to-red-600 bg-gradient-to-r text-xs text-white font-bold shadow-md shadow-red-500/25 transition-all hover:from-red-600 hover:to-red-700 !px-4 !py-1.5 dark:shadow-red-500/40 hover:shadow-lg hover:shadow-red-500/40"
+          @click="clearSelection"
+        >
+          <div class="i-carbon-close-outline mr-1.5 text-sm" /> 清空
+        </BaseButton>
+        
+        <span class="ml-2 text-xs font-medium glass-text-muted">
+          已选 {{ selectedAccountIds.length }} 项
+        </span>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <BaseButton
+          variant="secondary"
+          size="sm"
+          :disabled="selectedAccountIds.length === 0 || batchLoading"
+          class="text-xs transition-opacity"
+          :class="selectedAccountIds.length === 0 ? 'opacity-50' : 'opacity-100'"
+          @click="bulkSetMode('alt')"
+        >
+          <div v-if="batchLoading" class="i-svg-spinners-ring-resize mr-1 text-sm" />
+          <div v-else class="i-carbon-copy mr-1 text-sm" />
+          批量设为小号
+        </BaseButton>
+        <BaseButton
+          variant="secondary"
+          size="sm"
+          :disabled="selectedAccountIds.length === 0 || batchLoading"
+          class="text-xs transition-opacity !text-emerald-600 dark:!text-emerald-400 !border-emerald-500/20 !bg-emerald-500/10 hover:!bg-emerald-500/20"
+          :class="selectedAccountIds.length === 0 ? 'opacity-50' : 'opacity-100'"
+          @click="bulkSetMode('safe')"
+        >
+          <div v-if="batchLoading" class="i-svg-spinners-ring-resize mr-1 text-sm" />
+          <div v-else class="i-carbon-security mr-1 text-sm" />
+          批量设为风险规避
+        </BaseButton>
+      </div>
+    </div>
+
     <div v-if="loading && accounts.length === 0" class="glass-panel min-h-[300px] flex flex-col items-center justify-center rounded-lg py-12 text-center shadow">
       <div class="relative mb-6">
         <div class="i-svg-spinners-ring-resize text-5xl text-primary-500" />
@@ -161,7 +264,16 @@ async function handleSafeCheck(acc: any) {
         :class="acc.id === accountStore.currentAccountId ? 'border-primary-500/50 bg-primary-500/[0.03] shadow-[0_0_20px_rgba(var(--color-primary-500),0.15)] dark:border-primary-400/50' : ''"
         @click="accountStore.selectAccount(acc.id)"
       >
-        <div class="mb-4 flex items-start justify-between">
+        <div class="mb-4 flex items-start justify-between relative pl-8">
+          <!-- Selection Checkbox -->
+          <div 
+            class="absolute left-2 top-2 h-5 w-5 flex items-center justify-center rounded border transition-colors cursor-pointer"
+            :class="isSelected(acc.id) ? 'bg-primary-500 border-primary-500' : 'border-gray-300/50 bg-black/5 dark:border-gray-600 dark:bg-white/5'"
+            @click.stop="toggleSelection(acc.id)"
+          >
+            <div v-if="isSelected(acc.id)" class="i-carbon-checkmark text-white" />
+          </div>
+
           <div class="flex items-center gap-3">
             <div class="h-12 w-12 flex items-center justify-center overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
               <img v-if="getAvatarUrl(acc)" :src="getAvatarUrl(acc)" class="h-full w-full object-cover" @error="(e) => markFailed((e.target as HTMLImageElement).src)">
@@ -171,23 +283,8 @@ async function handleSafeCheck(acc: any) {
               <h3 class="text-lg font-bold">
                 {{ acc.name || acc.nick || acc.id }}
               </h3>
-              <div class="glass-text-muted text-sm flex items-center gap-2 mt-1">
+              <div class="glass-text-muted text-xs flex items-center gap-2 mt-1">
                 <span>QQ: {{ acc.uin || '未绑定' }}</span>
-                <select
-                  v-model="(acc as any).accountMode"
-                  @change="(e) => handleModeChange(acc, (e.target as HTMLSelectElement).value)"
-                  class="bg-transparent text-xs border border-gray-200/50 dark:border-gray-700/50 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer"
-                  :class="{
-                    'text-primary-500 dark:text-primary-400 font-medium': (acc.accountMode || (acc as any).account_mode || 'main') === 'main',
-                    'text-amber-500 dark:text-amber-400': (acc.accountMode || (acc as any).account_mode) === 'alt',
-                    'text-emerald-500 dark:text-emerald-400 font-bold': (acc.accountMode || (acc as any).account_mode) === 'safe'
-                  }"
-                  @click.stop
-                >
-                  <option value="main">主号</option>
-                  <option value="alt">小号</option>
-                  <option value="safe">风险规避</option>
-                </select>
               </div>
             </div>
           </div>
@@ -227,7 +324,35 @@ async function handleSafeCheck(acc: any) {
             </transition>
           </div>
 
-          <div class="flex gap-2">
+          <div class="flex gap-1 items-center">
+            <!-- 一键快速模式切换 -->
+            <div class="flex items-center gap-0.5 border border-gray-200/50 dark:border-gray-700/50 rounded bg-black/[0.02] dark:bg-white/[0.02] p-0.5 mr-1" @click.stop>
+              <button 
+                class="px-2 py-1 text-xs rounded transition-all font-medium cursor-pointer"
+                :class="(acc.accountMode || (acc as any).account_mode || 'main') === 'main' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 hover:bg-black/5 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-white/5'"
+                @click="handleModeChange(acc, 'main')"
+                title="设为主号"
+              >
+                主号
+              </button>
+              <button 
+                class="px-2 py-1 text-xs rounded transition-all font-medium cursor-pointer"
+                :class="(acc.accountMode || (acc as any).account_mode) === 'alt' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-gray-500 hover:text-gray-700 hover:bg-black/5 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-white/5'"
+                @click="handleModeChange(acc, 'alt')"
+                title="设为小号"
+              >
+                小号
+              </button>
+              <button 
+                class="px-2 py-1 text-xs rounded transition-all font-medium cursor-pointer"
+                :class="(acc.accountMode || (acc as any).account_mode) === 'safe' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'text-gray-500 hover:text-gray-700 hover:bg-black/5 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-white/5'"
+                @click="handleModeChange(acc, 'safe')"
+                title="设为风险规避"
+              >
+                避险
+              </button>
+            </div>
+
             <BaseButton
               variant="ghost"
               class="!p-2"

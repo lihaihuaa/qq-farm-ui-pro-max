@@ -1366,61 +1366,6 @@ async function handleDashboardTrialRenew() {
     </div>
     </ConfirmModal>
   </div>
-
-  <!-- 任务详情弹窗 -->
-  <ConfirmModal
-    :show="showTaskDetailModal"
-    :title="selectedTask ? getTaskDisplayName(selectedTask.name) : '任务详情'"
-    confirm-text="关闭"
-    :show-cancel="false"
-    @update:show="showTaskDetailModal = $event"
-    @confirm="showTaskDetailModal = false"
-  >
-    <div v-if="selectedTask" class="space-y-4">
-      <!-- 任务基本信息 -->
-      <div class="flex flex-wrap items-center gap-2 text-sm">
-        <span class="rounded px-2 py-0.5 text-xs font-medium" :class="getTaskKindClass(selectedTask.kind)">
-          {{ getTaskKindLabel(selectedTask.kind) }}
-        </span>
-        <span v-if="selectedTask.running" class="inline-flex items-center gap-1 rounded bg-green-100 px-2 py-0.5 text-xs text-green-700 font-medium dark:bg-green-900/30 dark:text-green-300">
-          <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
-          执行中
-        </span>
-        <span v-else class="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-700/30 dark:text-gray-400">
-          等待中
-        </span>
-        <span class="rounded bg-purple-100 px-2 py-0.5 text-xs text-purple-700 font-medium dark:bg-purple-900/30 dark:text-purple-300">
-          已执行 {{ selectedTask.runCount || 0 }} 次
-        </span>
-      </div>
-
-      <!-- 倒计时 -->
-      <div class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700/30">
-        <div class="i-carbon-timer text-indigo-500" />
-        <span class="glass-text-muted text-sm">距下次执行：</span>
-        <span class="text-sm font-bold font-mono">
-          {{ getTaskCountdown(selectedTask) }}
-        </span>
-      </div>
-
-      <!-- 操作步骤流程 -->
-      <div v-if="getTaskSteps(selectedTask.name).length">
-        <h4 class="glass-text-main mb-2 text-sm font-medium">📋 操作步骤</h4>
-        <ol class="ml-1 space-y-1.5">
-          <li
-            v-for="(step, idx) in getTaskSteps(selectedTask.name)"
-            :key="idx"
-            class="flex items-start gap-2 text-sm"
-          >
-            <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] text-indigo-700 font-bold dark:bg-indigo-900/30 dark:text-indigo-300">
-              {{ idx + 1 }}
-            </span>
-            <span class="glass-text-main">{{ step }}</span>
-          </li>
-        </ol>
-      </div>
-    </div>
-  </ConfirmModal>
 </template>
 
 <style scoped>
