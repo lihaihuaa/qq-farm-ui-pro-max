@@ -402,20 +402,31 @@ async function batchHelpFriends(helpFriends, myGid) {
 async function getAllFriends() {
     let reply;
 
-    try {
-        // 统一所有平台：优先使用 SyncAll 获取所有好友
-        const requestObj = types.SyncAllFriendsRequest.create({ open_ids: [] });
-        const body = types.SyncAllFriendsRequest.encode(requestObj).finish();
-        const { body: replyBody } = await sendMsgAsync('gamepb.friendpb.FriendService', 'SyncAll', body);
-        reply = types.SyncAllFriendsReply.decode(replyBody);
-    } catch (syncErr) {
-        // SyncAll 不可用时降级到 GetAll (兼用作失败重试与旧接口兼容)
-        logWarn('好友', `SyncAll 失败，降级为 GetAll: ${syncErr.message}`, {
-            module: 'friend', event: 'sync_all_fallback', result: 'warn',
-        });
+    if (CONFIG.platform && CONFIG.platform.startsWith('wx')) {
+        // 微信平台使用 GetAll
         const body = types.GetAllFriendsRequest.encode(types.GetAllFriendsRequest.create({})).finish();
         const { body: replyBody } = await sendMsgAsync('gamepb.friendpb.FriendService', 'GetAll', body);
         reply = types.GetAllFriendsReply.decode(replyBody);
+    } else {
+        // QQ平台：优先使用 SyncAll 获取所有好友
+        try {
+            const requestObj = types.SyncAllFriendsRequest.create({ open_ids: [] });
+            const body = types.SyncAllFriendsRequest.encode(requestObj).finish();
+            const { body: replyBody } = await sendMsgAsync('gamepb.friendpb.FriendService', 'SyncAll', body);
+            reply = types.SyncAllFriendsReply.decode(replyBody);
+        } catch (syncErr) {
+            // SyncAll 不可用时降级到 GetAll (兼用作失败重试与旧接口兼容)
+            if (syncErr.message && syncErr.message.includes('code=1000020')) {
+                log('好友', `自动切换为微信 GetAll 接口 (账号环境更正)`);
+            } else {
+                logWarn('好友', `SyncAll 失败，降级为 GetAll: ${syncErr.message}`, {
+                    module: 'friend', event: 'sync_all_fallback', result: 'warn',
+                });
+            }
+            const body = types.GetAllFriendsRequest.encode(types.GetAllFriendsRequest.create({})).finish();
+            const { body: replyBody } = await sendMsgAsync('gamepb.friendpb.FriendService', 'GetAll', body);
+            reply = types.GetAllFriendsReply.decode(replyBody);
+        }
     }
 
     if (reply && reply.game_friends && networkEvents) {
@@ -825,12 +836,16 @@ async function getFriendsList() {
         const reply = await getAllFriends();
         const friends = reply.game_friends || [];
         const state = getUserState();
+        const isWechatEnv = CONFIG.platform && CONFIG.platform.startsWith('wx');
         return friends
             .filter(f => toNum(f.gid) !== state.gid && f.name !== '小小农夫' && f.remark !== '小小农夫')
             .map(f => ({
                 gid: toNum(f.gid),
+                uin: toNum(f.uin),
                 name: f.remark || f.name || `GID:${toNum(f.gid)}`,
                 avatarUrl: String(f.avatar_url || '').trim(),
+                farmLevel: Math.max(0, toNum(f.level) || 0),
+                isWechat: !!isWechatEnv,
                 plant: f.plant ? {
                     stealNum: toNum(f.plant.steal_plant_num),
                     dryNum: toNum(f.plant.dry_num),

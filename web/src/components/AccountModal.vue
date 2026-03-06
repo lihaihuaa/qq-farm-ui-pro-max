@@ -26,6 +26,7 @@ const form = reactive({
 })
 
 const qrPlatform = ref('wx_car') // qr tab platform（默认车机微信）
+const qrUin = ref('') // 新增: 为第三方 QQ 扫码提供前置 QQ 号输入
 
 // ========== 串行轮询（彻底杜绝竞态条件） ==========
 // 用 setTimeout 而非 setInterval，确保前一个请求完成后才发下一个
@@ -57,7 +58,7 @@ async function doQRCheck() {
     return
 
   try {
-    const res = await api.post('/api/qr/check', { code: qrData.value.code, platform: qrPlatform.value })
+    const res = await api.post('/api/qr/check', { code: qrData.value.code, platform: qrPlatform.value, uin: qrUin.value })
     // 再次检查：如果在等待期间已被停止，直接退出
     if (pollStopped)
       return
@@ -117,13 +118,21 @@ async function doQRCheck() {
 async function loadQRCode() {
   if (activeTab.value !== 'qr')
     return
+
+  // 如果是 QQ 平台，必须要有 QQ 号
+  if (qrPlatform.value === 'qq' && !qrUin.value.trim()) {
+    qrStatus.value = 'QQ扫码依赖第三方服务，需先输入待登录的QQ号码'
+    qrData.value = null
+    return
+  }
+
   stopQRCheck() // 先停掉旧的轮询
   loading.value = true
   qrData.value = null
   qrStatus.value = '正在获取二维码'
   errorMessage.value = ''
   try {
-    const res = await api.post('/api/qr/create', { platform: qrPlatform.value })
+    const res = await api.post('/api/qr/create', { platform: qrPlatform.value, uin: qrUin.value.trim() })
     if (res.data.ok) {
       qrData.value = res.data.data
       const statusHintMap: Record<string, string> = { qq: '请使用手机QQ扫码', wx: '请使用微信扫码', wx_ipad: '请使用微信扫码（iPad协议）', wx_car: '请使用微信扫码（车机协议）' }
@@ -270,6 +279,7 @@ watch(() => props.show, (newVal) => {
     stopQRCheck()
     qrData.value = null
     qrStatus.value = ''
+    qrUin.value = ''
   }
 })
 </script>
@@ -347,6 +357,23 @@ watch(() => props.show, (newVal) => {
             <p class="glass-text-muted text-sm">
               扫码默认使用登录平台昵称
             </p>
+          </div>
+
+          <div v-if="qrPlatform === 'qq'" class="w-full">
+            <BaseInput
+              v-model="qrUin"
+              placeholder="请输入准备登录的QQ号码"
+            />
+            <BaseButton
+              v-if="!qrData"
+              variant="primary"
+              class="w-full mt-2"
+              :disabled="!qrUin"
+              :loading="loading"
+              @click="loadQRCode"
+            >
+              获取QQ二维码
+            </BaseButton>
           </div>
 
           <div v-if="qrData && (qrData.image || qrData.qrcode)" class="flex items-center justify-center border border-gray-200 rounded-lg bg-white p-2 dark:border-white/20">

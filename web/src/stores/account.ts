@@ -35,7 +35,7 @@ export const useAccountStore = defineStore('account', () => {
     loading.value = true
     try {
       // api interceptor adds x-admin-token
-      const res = await api.get('/api/accounts')
+      const res = await api.get(`/api/accounts?_t=${Date.now()}`)
       if (res.data.ok && res.data.data && res.data.data.accounts) {
         accounts.value = res.data.data.accounts
 

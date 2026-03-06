@@ -105,7 +105,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     
     echo ""
     print_info "GitHub Actions 将自动构建并推送 Docker 镜像"
-    print_info "查看进度：https://github.com/smdk000/qq-farm-ui-pro-max/actions"
+    print_info "查看进度：https://github.com/smdk000/qq-farm-bot-ui/actions"
 else
     print_info "未创建标签，代码推送将触发基于 main 分支的构建"
 fi

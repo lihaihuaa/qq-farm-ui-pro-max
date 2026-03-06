@@ -92,11 +92,11 @@ function renderStatusBar() {
     const { platform, name, level, gold, exp } = statusData;
 
     // 构建状态行
-    const platformStr = platform === 'wx' ? `${MAGENTA}微信${RESET}` : `${CYAN}QQ${RESET}`;
+    const platformStr = platform.startsWith('wx') ? `${MAGENTA}微信${RESET}` : `${CYAN}QQ${RESET}`;
     const nameStr = name ? `${BOLD}${name}${RESET}` : '未登录';
     const levelStr = `${GREEN}Lv${level}${RESET}`;
     const goldStr = `${YELLOW}金币:${gold}${RESET}`;
-    
+
     // 显示经验值
     let expStr = '';
     if (level > 0 && exp >= 0) {
@@ -112,7 +112,7 @@ function renderStatusBar() {
     }
 
     // 第一行：平台 | 昵称 | 等级 | 金币 | 经验
-    const line1 = `${platformStr} | ${nameStr} | ${levelStr} | ${goldStr}${expStr ? ` | ${  expStr}` : ''}`;
+    const line1 = `${platformStr} | ${nameStr} | ${levelStr} | ${goldStr}${expStr ? ` | ${expStr}` : ''}`;
 
     // 第二行：分隔线
     const width = process.stdout.columns || 80;
@@ -142,7 +142,7 @@ function updateStatus(data) {
     if (changed) {
         if (statusEnabled) renderStatusBar();
         if (recordGoldExpHook && (data.gold !== undefined || data.exp !== undefined)) {
-            try { recordGoldExpHook(statusData.gold, statusData.exp); } catch {}
+            try { recordGoldExpHook(statusData.gold, statusData.exp); } catch { }
         }
     }
 }

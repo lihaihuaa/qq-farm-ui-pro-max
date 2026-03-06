@@ -163,6 +163,9 @@ function startAdminServer(dataProvider) {
         res.header('Access-Control-Allow-Origin', '*');
         res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
         res.header('Access-Control-Allow-Headers', 'Content-Type, x-account-id, x-admin-token');
+        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.header('Pragma', 'no-cache');
+        res.header('Expires', '0');
         if (req.method === 'OPTIONS') return res.sendStatus(200);
         next();
     });
@@ -900,6 +903,11 @@ function startAdminServer(dataProvider) {
                 accountList = accountList.filter(a => a.username === req.currentUser.username);
             }
 
+            // Console log to trace running status issue reported by user
+            let runningMap = {};
+            accountList.forEach(a => runningMap[a.id] = a.running);
+            console.log('[DEBUG /api/accounts] accounts running map:', runningMap, provider.workers ? Object.keys(provider.workers) : 'No workers accessible');
+
             res.json({ ok: true, data: { ...data, accounts: accountList } });
         } catch (e) {
             res.status(500).json({ ok: false, error: e.message });
@@ -1296,14 +1304,17 @@ function startAdminServer(dataProvider) {
 
     // ============ 第三方 API 配置管理 ============
 
+    // API: 获取第三方API配置（仅管理员）
     app.get('/api/admin/third-party-api', authRequired, userRequired, async (req, res) => {
         if (req.currentUser.role !== 'admin') {
             return res.status(403).json({ ok: false, error: 'Forbidden' });
         }
         try {
-            res.json({ ok: true, data: store.getThirdPartyApiConfig() });
-        } catch (e) {
-            res.status(500).json({ ok: false, error: e.message });
+            const config = store.getThirdPartyApiConfig ? store.getThirdPartyApiConfig() : {};
+            res.json({ ok: true, data: config });
+        } catch (error) {
+            adminLogger.error('获取第三方API配置失败', error);
+            res.status(500).json({ ok: false, error: '获取第三方API配置失败' });
         }
     });
 
@@ -1445,7 +1456,7 @@ function startAdminServer(dataProvider) {
     // ============ QR Code Login APIs (无需账号选择) ============
     // 这些接口不需要 authRequired 也能调用（用于登录流程）
     app.post('/api/qr/create', async (req, res) => {
-        const { platform = 'qq' } = req.body || {};
+        const { platform = 'qq', uin = '' } = req.body || {};
         try {
             // ========== Ipad860 iPad/车机 微信协议直连 ==========
             if (platform === 'wx_ipad' || platform === 'wx_car') {
@@ -1513,7 +1524,7 @@ function startAdminServer(dataProvider) {
                     res.json({ ok: false, error: wxRes.msg || '获取微信二维码失败' });
                 }
             } else {
-                const result = await MiniProgramLoginSession.requestLoginCode();
+                const result = await MiniProgramLoginSession.requestLoginCode(uin);
                 res.json({ ok: true, data: result });
             }
         } catch (e) {
@@ -1522,7 +1533,7 @@ function startAdminServer(dataProvider) {
     });
 
     app.post('/api/qr/check', async (req, res) => {
-        const { code, platform = 'qq' } = req.body || {};
+        const { code, platform = 'qq', uin = '' } = req.body || {};
         if (!code) {
             return res.status(400).json({ ok: false, error: 'Missing code' });
         }

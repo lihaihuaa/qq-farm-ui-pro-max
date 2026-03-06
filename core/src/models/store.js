@@ -294,7 +294,12 @@ function loadGlobalConfig() {
                 globalConfig.adminPasswordHash = data.adminPasswordHash;
             }
             if (data.thirdPartyApi && typeof data.thirdPartyApi === 'object') {
-                globalConfig.thirdPartyApi = { ...data.thirdPartyApi };
+                globalConfig.thirdPartyApi = {
+                    ...data.thirdPartyApi,
+                    aineisheKey: typeof data.thirdPartyApi.aineisheKey === 'string' ? data.thirdPartyApi.aineisheKey : ''
+                };
+            } else {
+                globalConfig.thirdPartyApi = { aineisheKey: '' };
             }
         }
     } catch (e) {
@@ -659,13 +664,18 @@ function getSuspendUntil(accountId) {
 }
 
 module.exports = {
+    DEFAULT_ACCOUNT_CONFIG,
+    DEFAULT_TIMING_CONFIG,
+    getAccountConfigSnapshot,
+    setAccountConfigSnapshot,
+    removeAccountConfig,
     getConfigSnapshot,
     applyConfigSnapshot,
     getAutomation,
     setAutomation,
     isAutomationOn,
-    getPreferredSeed,
     getPlantingStrategy,
+    getPreferredSeed,
     getIntervals,
     getFriendQuietHours,
     getFriendBlacklist,
@@ -674,18 +684,18 @@ module.exports = {
     setUITheme,
     getOfflineReminder,
     setOfflineReminder,
-    getAccounts,
+    getTimingConfig,
+    setTimingConfig,
+    getSuspendUntil,
+    recordSuspendUntil,
+    ensureAccountConfig,
     addOrUpdateAccount,
     deleteAccount,
     getAdminPasswordHash,
     setAdminPasswordHash,
-    // 时间参数配置
-    getTimingConfig,
-    setTimingConfig,
-    DEFAULT_TIMING_CONFIG,
-    // 风控休眠持久化
-    recordSuspendUntil,
-    getSuspendUntil,
+    getAccounts,
+    getThirdPartyApiConfig,
+    setThirdPartyApiConfig
 };
 
 function getAccountsFullPaged(page = 1, pageSize = 20) {

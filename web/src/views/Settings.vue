@@ -80,6 +80,7 @@ const thirdPartyApiConfig = ref({
   wxApiUrl: '',
   wxAppId: '',
   ipad860Url: '',
+  aineisheKey: '',
 })
 const thirdPartyApiSaving = ref(false)
 
@@ -1562,6 +1563,12 @@ async function restoreTimingDefaults() {
               label="Ipad860 服务地址"
               type="text"
               placeholder="如 http://127.0.0.1:8058 或 http://ipad860:8058"
+            />
+            <BaseInput
+              v-model="thirdPartyApiConfig.aineisheKey"
+              label="码雨云 API Token (QQ扫码)"
+              type="password"
+              placeholder="请输入 aineishe.com 获取的 Token"
             />
           </div>
           <div class="alert alert-warning mt-2 flex items-start gap-2 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">

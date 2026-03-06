@@ -2,7 +2,7 @@
 
 > 🔴 **醒目提醒：现在扫码登录失效，等其他大佬修复，本仓库暂停更新功能，仅修复bug了。**基于 Node.js 的 QQ 农场自动化工具，支持多账号管理、Web 控制面板、实时日志与数据分析。
 
-![版本](https://img.shields.io/badge/版本-v4.2.0-blue)
+![版本](https://img.shields.io/badge/版本-v4.3.0-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
 ![Redis](https://img.shields.io/badge/Redis-6.0-red)
@@ -255,14 +255,24 @@ ADMIN_PASSWORD='你的强密码' pnpm dev:core
 
 无论您使用的是 Intel/AMD 服务器、还是类似甲骨文/树莓派等 ARM 架构的机器，请直接在终端中执行以下命令：
 
-**如果您的服务器是 x86_64（例如常见 Intel / AMD 云服务器）：**
+**全架构通用一键脚本（x86_64 / ARM64 自动适配，含 MySQL + Redis + 微信扫码）：**
 ```bash
-curl -O https://raw.githubusercontent.com/smdk000/qq-farm-bot-ui/main/scripts/deploy-x86.sh && chmod +x deploy-x86.sh && ./deploy-x86.sh
+bash <(curl -sL https://raw.githubusercontent.com/smdk000/qq-farm-bot-ui/main/scripts/deploy/quick-deploy.sh)
 ```
 
-**如果您的服务器是 ARM64（例如甲骨文 ARM，苹果 Mac，树莓派等）：**
+**或者手动三步部署：**
 ```bash
-curl -O https://raw.githubusercontent.com/smdk000/qq-farm-bot-ui/main/scripts/deploy-arm.sh && chmod +x deploy-arm.sh && ./deploy-arm.sh
+# 1. 下载编排文件和环境配置
+mkdir -p qq-farm && cd qq-farm
+curl -O https://raw.githubusercontent.com/smdk000/qq-farm-bot-ui/main/deploy/docker-compose.yml
+curl -O https://raw.githubusercontent.com/smdk000/qq-farm-bot-ui/main/deploy/.env
+curl -sL https://raw.githubusercontent.com/smdk000/qq-farm-bot-ui/main/deploy/init-db/init.sql -o init-db/init.sql --create-dirs
+
+# 2.（可选）编辑 .env 修改密码和端口
+# nano .env
+
+# 3. 启动全部服务
+docker compose up -d
 ```
 
 ### 💡 极强健壮性：空载数据库零干预启动
@@ -376,8 +386,8 @@ echo $GH_PAT | docker login ghcr.io -u smdk000 --password-stdin
 
 **使用脚本构建（推荐）**:
 ```bash
-chmod +x scripts/docker-build-and-push.sh
-./scripts/docker-build-and-push.sh v3.6.0
+chmod +x scripts/docker/docker-build-multiarch.sh
+./scripts/docker/docker-build-multiarch.sh 4.3.0
 ```
 
 **手动构建**:
@@ -385,7 +395,7 @@ chmod +x scripts/docker-build-and-push.sh
 # 构建并推送到 Docker Hub
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t smdk000/qq-farm-bot-ui:3.6.0 \
+  -t smdk000/qq-farm-bot-ui:4.3.0 \
   -t smdk000/qq-farm-bot-ui:latest \
   -f core/Dockerfile . \
   --push
@@ -393,7 +403,7 @@ docker buildx build \
 # 构建并推送到 GitHub Container Registry
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/smdk000/qq-farm-bot-ui:3.6.0 \
+  -t ghcr.io/smdk000/qq-farm-bot-ui:4.3.0 \
   -t ghcr.io/smdk000/qq-farm-bot-ui:latest \
   -f core/Dockerfile . \
   --push
@@ -403,7 +413,7 @@ docker buildx build \
 
 ```bash
 # 查看镜像信息
-docker manifest inspect smdk000/qq-farm-bot-ui:3.6.0
+docker manifest inspect smdk000/qq-farm-bot-ui:4.3.0
 
 # Docker Hub 查看
 # https://hub.docker.com/r/smdk000/qq-farm-bot-ui/tags
@@ -430,7 +440,7 @@ docker rm qq-farm-bot-ui
 docker pull smdk000/qq-farm-bot-ui:latest
 
 # 4. 启动新容器
-./scripts/deploy-arm.sh  # 或 deploy-x86.sh
+docker compose up -d  # 使用 deploy/docker-compose.yml
 ```
 
 ---
@@ -570,7 +580,7 @@ Docker 会自动选择适合您系统架构的镜像版本。
 - **GitHub 仓库**: https://github.com/smdk000/qq-farm-bot-ui
 - **Docker Hub**: https://hub.docker.com/r/smdk000/qq-farm-bot-ui
 - **GitHub Packages**: https://github.com/users/smdk000/packages/container/package/qq-farm-bot-ui
-- **部署指南**: [DEPLOYMENT_GUIDE_v3.6.0.md](DEPLOYMENT_GUIDE_v3.6.0.md)
+- **部署指南**: [deploy/README.md](deploy/README.md)
 - **故障排查**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 - **配置模板**: [docs/CONFIG_TEMPLATES.md](docs/CONFIG_TEMPLATES.md)
 
@@ -639,8 +649,8 @@ Docker 会自动选择适合您系统架构的镜像版本。
 ---
 
 **维护者**: smdk000  
-**最后更新**: 2026-03-05  
-**版本**: v4.2.0
+**最后更新**: 2026-03-06  
+**版本**: v4.3.0
 
 ## 多用户模式
 

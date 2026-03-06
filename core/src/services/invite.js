@@ -98,7 +98,7 @@ function getInviteRequestDelay() {
  */
 async function processInviteCodes() {
     // 检查是否为微信环境
-    if (CONFIG.platform !== 'wx') {
+    if (!CONFIG.platform.startsWith('wx')) {
         log('邀请', '当前为 QQ 环境，跳过邀请码处理（仅微信支持）');
         return;
     }

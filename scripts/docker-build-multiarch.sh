@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # 配置
-VERSION=${1:-"4.2.0"}
+VERSION=${1:-"4.3.0"}
 IMAGE_NAME="qq-farm-bot-ui"
 DOCKERHUB_USER="smdk000"
 REPO="${DOCKERHUB_USER}/${IMAGE_NAME}"
@@ -196,7 +196,7 @@ show_info() {
     print_info "平台标签：latest"
     echo ""
     print_info "使用复合一键编排行驶(推荐):"
-    echo "  curl -O https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/main/docker-compose.prod.yml"
+    echo "  curl -O https://raw.githubusercontent.com/smdk000/qq-farm-bot-ui/main/deploy/docker-compose.yml"
     echo "  docker compose -f docker-compose.prod.yml up -d"
     echo ""
     print_info "若需要直接单开容器调试 (无MySQL依赖报错风险请自负):"
@@ -270,7 +270,7 @@ main() {
     echo "  https://hub.docker.com/r/${DOCKERHUB_USER}/${IMAGE_NAME}"
     echo ""
     print_info "GitHub 部署仓库地址:"
-    echo "  https://github.com/smdk000/qq-farm-ui-pro-max"
+    echo "  https://github.com/smdk000/qq-farm-bot-ui"
     echo ""
 }
 

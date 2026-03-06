@@ -354,9 +354,13 @@ async function startBot(config) {
     if (isRunning) return;
     isRunning = true;
 
-    const { code, platform, farmInterval, friendInterval } = config;
-
-    CONFIG.platform = platform || 'qq';
+    let resolvedPlatform = platform || 'qq';
+    // 自动降级与修正: 如果保存为 qq 且 uin 包含字母 (如 wxid_xxx 或 oXXXX)，自动修正为微信
+    const uStr = String(uin || '');
+    if (resolvedPlatform === 'qq' && /[a-zA-Z]/.test(uStr)) {
+        resolvedPlatform = 'wx_car';
+    }
+    CONFIG.platform = resolvedPlatform;
     if (farmInterval) {
         CONFIG.farmCheckInterval = farmInterval;
         CONFIG.farmCheckIntervalMin = farmInterval;

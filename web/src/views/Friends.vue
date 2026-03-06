@@ -153,7 +153,7 @@ function getFriendAvatar(friend: any) {
   if (direct)
     return direct
   const uin = String(friend?.uin || '').trim()
-  if (uin)
+  if (uin && !friend?.isWechat)
     return `https://q1.qlogo.cn/g?b=qq&nk=${uin}&s=100`
   return ''
 }
@@ -248,6 +248,7 @@ function handleFriendAvatarError(friend: any) {
                   :src="getFriendAvatar(friend)"
                   class="h-full w-full object-cover"
                   loading="lazy"
+                  referrerpolicy="no-referrer"
                   @error="handleFriendAvatarError(friend)"
                 >
                 <div v-else class="i-carbon-user text-xl text-gray-400" />
@@ -255,6 +256,7 @@ function handleFriendAvatarError(friend: any) {
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2 truncate font-bold">
                   <span class="truncate">{{ friend.name }}</span>
+                  <span v-if="friend.farmLevel != null && friend.farmLevel > 0" class="glass-text-muted whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Lv.{{ friend.farmLevel }}</span>
                   <span v-if="blacklist.includes(Number(friend.gid))" class="glass-text-muted whitespace-nowrap rounded bg-gray-200 px-1.5 py-0.5 text-[10px] dark:bg-gray-700 dark:text-gray-400">已屏蔽</span>
                 </div>
                 <div class="mt-0.5 truncate text-sm" :class="getFriendStatusText(friend) !== '无操作' ? 'text-green-500 font-medium' : 'text-gray-400'">
