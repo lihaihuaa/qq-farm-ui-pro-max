@@ -29,6 +29,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." 2>/dev/null && pwd || pwd)"
 USE_LOCAL_BUNDLE=0
 DOCKER=(docker)
 SUDO=""
+SKIP_DOCKER_PULL="${SKIP_DOCKER_PULL:-0}"
 
 trap 'print_error "脚本执行失败，请检查上方日志。"' ERR
 
@@ -220,6 +221,11 @@ wait_for_container() {
 }
 
 compose_pull_with_retry() {
+    if [ "${SKIP_DOCKER_PULL}" = "1" ] || [ "${SKIP_DOCKER_PULL}" = "true" ]; then
+        print_info "检测到 SKIP_DOCKER_PULL=${SKIP_DOCKER_PULL}，跳过镜像拉取，直接使用本地镜像。"
+        return 0
+    fi
+
     local attempt=1
 
     while true; do

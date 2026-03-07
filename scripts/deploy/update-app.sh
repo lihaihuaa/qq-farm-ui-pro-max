@@ -13,6 +13,7 @@ DOCKER=(docker)
 SUDO=""
 COMPOSE_PULL_RETRIES="${COMPOSE_PULL_RETRIES:-3}"
 PULL_RETRY_DELAY_SECONDS="${PULL_RETRY_DELAY_SECONDS:-10}"
+SKIP_DOCKER_PULL="${SKIP_DOCKER_PULL:-0}"
 
 print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 print_success() { echo -e "${GREEN}[OK]${NC} $1"; }
@@ -75,6 +76,11 @@ wait_for_app() {
 }
 
 compose_pull_with_retry() {
+    if [ "${SKIP_DOCKER_PULL}" = "1" ] || [ "${SKIP_DOCKER_PULL}" = "true" ]; then
+        print_info "检测到 SKIP_DOCKER_PULL=${SKIP_DOCKER_PULL}，跳过主程序镜像拉取，直接使用本地镜像。"
+        return 0
+    fi
+
     local attempt=1
 
     while true; do

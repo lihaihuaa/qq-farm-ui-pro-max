@@ -395,7 +395,7 @@ const backgroundStyle = computed(() => {
                 </template>
               </BaseInput>
 
-              <BaseInput v-model="password" type="password" label="密码" placeholder="请输入密码" required>
+              <BaseInput v-model="password" type="password" label="密码" placeholder="请输入密码" autocomplete="current-password" required>
                 <template #prefix>
                   <div class="i-carbon-password text-gray-400" />
                 </template>
@@ -425,7 +425,7 @@ const backgroundStyle = computed(() => {
                   <div class="i-carbon-user text-gray-400" />
                 </template>
               </BaseInput>
-              <BaseInput v-model="password" type="password" label="新密码" placeholder="字母+数字组合" required>
+              <BaseInput v-model="password" type="password" label="新密码" placeholder="字母+数字组合" autocomplete="new-password" required>
                 <template #prefix>
                   <div class="i-carbon-password text-gray-400" />
                 </template>

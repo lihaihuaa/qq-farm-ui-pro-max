@@ -70,15 +70,16 @@ async function doQRCheck() {
         stopQRCheck()
         qrStatus.value = '登录成功'
         const { uin, code: authCode, nickname, avatar } = res.data.data
+        const resolvedUin = String(uin || qrUin.value.trim() || '').trim()
 
         let accName = form.name.trim()
         if (!accName) {
-          accName = nickname || (uin ? String(uin) : '扫码账号')
+          accName = nickname || (resolvedUin || '扫码账号')
         }
 
         await addAccount({
           id: props.editData?.id,
-          uin,
+          uin: resolvedUin,
           code: authCode,
           loginType: 'qr',
           name: props.editData ? (props.editData.name || accName) : accName,

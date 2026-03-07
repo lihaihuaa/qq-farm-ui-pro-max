@@ -11,6 +11,12 @@ const currentUser = ref<any>(null)
 const appStore = useAppStore()
 const settingStore = useSettingStore()
 
+const THEME_ICON_CLASS = {
+  light: 'i-carbon-sun',
+  dark: 'i-carbon-moon',
+  auto: 'i-carbon-brightness-contrast',
+} as const
+
 // 从 localStorage 加载用户信息
 function loadCurrentUser() {
   try {
@@ -147,12 +153,7 @@ const expiryWarning = computed(() => {
 })
 
 const iconClass = computed(() => {
-  switch (appStore.themeMode) {
-    case 'light': return 'i-carbon-sun'
-    case 'dark': return 'i-carbon-moon'
-    case 'auto': return 'i-carbon-brightness-contrast'
-    default: return 'i-carbon-moon'
-  }
+  return THEME_ICON_CLASS[appStore.themeMode] || THEME_ICON_CLASS.dark
 })
 
 const modeLabel = computed(() => {
@@ -430,6 +431,7 @@ async function handleChangePassword() {
         v-model="oldPassword"
         type="password"
         label="旧密码"
+        autocomplete="current-password"
         placeholder="请输入旧密码"
         required
       />
@@ -437,6 +439,7 @@ async function handleChangePassword() {
         v-model="newPassword"
         type="password"
         label="新密码"
+        autocomplete="new-password"
         placeholder="请输入新密码"
         required
       />
@@ -444,6 +447,7 @@ async function handleChangePassword() {
         v-model="confirmPassword"
         type="password"
         label="确认新密码"
+        autocomplete="new-password"
         placeholder="请再次输入新密码"
         required
       />

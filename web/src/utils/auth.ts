@@ -11,6 +11,12 @@ export const adminToken = useStorage('admin_token', '')
 
 export const currentAccountId = useStorage('current_account_id', '')
 
+let disconnectRealtimeHook: null | (() => void) = null
+
+export function registerDisconnectRealtimeHook(fn: (() => void) | null) {
+  disconnectRealtimeHook = fn
+}
+
 /**
  * 仅清除本地认证状态，不发起任何网络请求。
  * 适用于拦截器/守卫等无法安全发起 API 调用的场景。
@@ -27,13 +33,14 @@ export function clearLocalAuthState() {
  */
 export async function clearAuth() {
   try {
-    const { useStatusStore } = await import('@/stores/status')
-    useStatusStore().disconnectRealtime()
+    disconnectRealtimeHook?.()
   }
   catch { /* ignore */ }
   try {
-    const { default: api } = await import('@/api')
-    await api.post('/api/auth/logout')
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    })
   }
   catch { /* ignore */ }
   clearLocalAuthState()

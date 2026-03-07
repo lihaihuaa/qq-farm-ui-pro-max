@@ -64,7 +64,7 @@ function changeTheme(themeKey: string) {
               <div class="i-carbon-code text-sm text-primary" /><span>Maker: smdk000</span>
             </div>
             <div class="flex items-center gap-2">
-              <div class="i-carbon-logo-qq text-sm text-primary" /><span>Q群: 227916149</span>
+              <div class="i-carbon-chat text-sm text-primary" /><span>Q群: 227916149</span>
             </div>
           </div>
 

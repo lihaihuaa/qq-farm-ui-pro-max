@@ -899,7 +899,7 @@ async function restoreTimingDefaults() {
               title="推荐配置，收益与安全并重"
               @click="applyPreset('balanced')"
             >
-              <div class="i-carbon-balance" /> 平衡
+              <div class="i-carbon-scales" /> 平衡
             </button>
             <button
               class="flex items-center gap-1 border border-orange-200 rounded-md bg-orange-50 px-2 py-1 text-xs text-orange-700 font-semibold transition dark:border-orange-800/50 dark:bg-orange-900/20 hover:bg-orange-100 dark:text-orange-400 dark:hover:bg-orange-900/40"
@@ -1111,7 +1111,7 @@ async function restoreTimingDefaults() {
             <!-- 分组 1: 农场基础操作 -->
             <div class="border border-gray-100/50 rounded-2xl bg-transparent p-5 transition-all dark:border-gray-700/50 hover:bg-gray-50/10">
               <h4 class="glass-text-muted mb-4 flex items-center text-xs font-bold tracking-widest uppercase">
-                <div class="i-carbon-Agriculture mr-2" /> 农场基础操作
+                <div class="i-carbon-agriculture-analytics mr-2" /> 农场基础操作
                 <BaseTooltip text="农场自动化的核心控制区，包含种植收获、好友互动、升级土地等基础功能" />
               </h4>
               <div class="space-y-4">
@@ -1294,24 +1294,37 @@ async function restoreTimingDefaults() {
         </div>
 
         <!-- Password Content -->
-        <div class="p-4 space-y-3">
+        <form class="p-4 space-y-3" @submit.prevent="handleChangePassword">
+          <input
+            :value="currentUsername || ''"
+            type="text"
+            name="username"
+            autocomplete="username"
+            class="hidden"
+            readonly
+            tabindex="-1"
+            aria-hidden="true"
+          >
           <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
             <BaseInput
               v-model="passwordForm.old"
               label="当前密码"
               type="password"
+              autocomplete="current-password"
               placeholder="当前登录密码"
             />
             <BaseInput
               v-model="passwordForm.new"
               label="新密码"
               type="password"
+              autocomplete="new-password"
               :placeholder="isAdmin ? '至少 4 位' : '至少 6 位，需含字母和数字'"
             />
             <BaseInput
               v-model="passwordForm.confirm"
               label="确认新密码"
               type="password"
+              autocomplete="new-password"
               placeholder="再次输入新密码"
             />
           </div>
@@ -1323,13 +1336,13 @@ async function restoreTimingDefaults() {
             <BaseButton
               variant="primary"
               size="sm"
+              type="submit"
               :loading="passwordSaving"
-              @click="handleChangePassword"
             >
               修改密码
             </BaseButton>
           </div>
-        </div>
+        </form>
 
         <template v-if="isAdmin">
           <!-- Offline Header -->
@@ -1465,7 +1478,7 @@ async function restoreTimingDefaults() {
             <!-- Group 2: Ghosting (Anti-Detection) -->
             <div class="space-y-4">
               <h4 class="glass-text-muted flex items-center text-xs font-bold tracking-widest uppercase">
-                <div class="i-carbon-ghost mr-2" /> Ghosting 打盹行为
+                <div class="i-carbon-asleep mr-2" /> Ghosting 打盹行为
               </h4>
               <div class="grid grid-cols-2 gap-3">
                 <BaseInput
@@ -1647,6 +1660,7 @@ async function restoreTimingDefaults() {
               v-model="thirdPartyApiConfig.wxApiKey"
               label="微信登录 API Key (wxApiKey)"
               type="password"
+              autocomplete="off"
               placeholder="请输入与第三方授权约定的 ApiKey"
             />
             <BaseInput
@@ -1671,6 +1685,7 @@ async function restoreTimingDefaults() {
               v-model="thirdPartyApiConfig.aineisheKey"
               label="码雨云 API Token (QQ扫码)"
               type="password"
+              autocomplete="off"
               placeholder="请输入 aineishe.com 获取的 Token"
             />
           </div>

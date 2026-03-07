@@ -286,12 +286,14 @@ const OP_META: Record<string, { label: string, icon: string, color: string }> = 
   sell: { label: '出售', icon: 'i-carbon-shopping-cart', color: 'text-pink-500' },
 }
 
+const DEFAULT_OP_ICON = 'i-carbon-circle-dash'
+
 function getOpName(key: string | number) {
   return OP_META[String(key)]?.label || String(key)
 }
 
 function getOpIcon(key: string | number) {
-  return OP_META[String(key)]?.icon || 'i-carbon-circle-dash'
+  return OP_META[String(key)]?.icon || DEFAULT_OP_ICON
 }
 
 function getOpColor(key: string | number) {

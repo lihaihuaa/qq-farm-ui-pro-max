@@ -56,7 +56,7 @@ const emit = defineEmits(['close'])
               <span>Author: smdk000</span>
             </div>
             <div class="flex items-center gap-1.5">
-              <div class="i-carbon-user-group" />
+              <div class="i-carbon-user-multiple" />
               <span>QQ群: 227916149</span>
             </div>
           </div>

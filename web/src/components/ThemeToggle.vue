@@ -4,13 +4,14 @@ import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()
 
+const THEME_ICON_CLASS = {
+  light: 'i-carbon-sun',
+  dark: 'i-carbon-moon',
+  auto: 'i-carbon-brightness-contrast',
+} as const
+
 const iconClass = computed(() => {
-  switch (appStore.themeMode) {
-    case 'light': return 'i-carbon-sun'
-    case 'dark': return 'i-carbon-moon'
-    case 'auto': return 'i-carbon-brightness-contrast'
-    default: return 'i-carbon-moon'
-  }
+  return THEME_ICON_CLASS[appStore.themeMode] || THEME_ICON_CLASS.dark
 })
 
 const modeLabel = computed(() => {

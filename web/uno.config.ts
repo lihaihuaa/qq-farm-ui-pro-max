@@ -55,7 +55,9 @@ export default defineConfig({
     presetAttributify(),
     presetIcons({
       scale: 1.2,
-      warn: true,
+      // Source scanning occasionally mis-parses nearby TS tokens as icon names.
+      // We keep icons explicit in source and suppress these false-positive warnings in build output.
+      warn: false,
       collections: {
         fas: () => import('@iconify-json/fa-solid/icons.json').then(i => i.default),
       },

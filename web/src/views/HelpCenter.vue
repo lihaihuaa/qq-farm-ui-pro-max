@@ -153,7 +153,7 @@ const progress = developmentProgress
         <!-- 开发进度信息 -->
         <div class="glass-panel mt-4 rounded-xl p-4 shadow-sm">
           <div class="glass-text-main mb-3 flex items-center gap-2 text-xs font-bold dark:text-gray-300">
-            <div class="i-carbon-progress text-primary-600 dark:text-primary-400" />
+            <div class="i-carbon-in-progress text-primary-600 dark:text-primary-400" />
             <span>核心库补完计划</span>
           </div>
           <div class="h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
@@ -254,7 +254,7 @@ const progress = developmentProgress
                 </button>
               </div>
               <div v-else class="py-20 text-center">
-                <div class="i-carbon-search-locating dark:glass-text-muted mx-auto mb-4 text-6xl text-gray-300" />
+                <div class="i-carbon-search-locate dark:glass-text-muted mx-auto mb-4 text-6xl text-gray-300" />
                 <p class="glass-text-main text-lg font-bold dark:text-gray-300">
                   未找到相关内容
                 </p>

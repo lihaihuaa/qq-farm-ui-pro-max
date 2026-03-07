@@ -360,7 +360,7 @@ function startAdminServer(dataProvider) {
     // Farm Tools API 微服务接管
     app.use('/api', require('./farm-tools-routing'));
 
-    const PUBLIC_PATHS = new Set(['/login', '/auth/register', '/auth/refresh', '/auth/logout', '/qr/create', '/qr/check', '/notifications', '/trial-card', '/ui-config']);
+    const PUBLIC_PATHS = new Set(['/login', '/auth/register', '/auth/refresh', '/auth/logout', '/qr/create', '/qr/check', '/notifications', '/trial-card', '/ui-config', '/ping']);
     app.use('/api', (req, res, next) => {
         if (PUBLIC_PATHS.has(req.path)) return next();
         authRequired(req, res, (err) => {
@@ -1241,6 +1241,20 @@ function startAdminServer(dataProvider) {
                 payload.username = req.currentUser.username;
             }
 
+            if (String(payload.platform || '') === 'qq') {
+                let resolvedUin = String(payload.uin || payload.qq || '').trim();
+                if (!resolvedUin && isUpdate) {
+                    const allAccounts = await store.getAccounts();
+                    const existingAccount = (allAccounts.accounts || []).find(a => String(a.id) === String(payload.id));
+                    resolvedUin = String((existingAccount && (existingAccount.uin || existingAccount.qq)) || '').trim();
+                }
+                if (!resolvedUin) {
+                    return res.status(400).json({ ok: false, error: 'QQ账号必须提供QQ号(UIN)' });
+                }
+                payload.uin = resolvedUin;
+                payload.qq = resolvedUin;
+            }
+
             // 强制将数据与操作者绑定 (admin可以选择不绑定留作公用，但这里简化直接记录创建者)
             if (!isUpdate && req.currentUser) {
                 payload.username = req.currentUser.username;
@@ -1821,7 +1835,11 @@ function startAdminServer(dataProvider) {
     // 这些接口不需要 authRequired 也能调用（用于登录流程）
     app.post('/api/qr/create', async (req, res) => {
         const { platform = 'qq', uin = '' } = req.body || {};
+        const trimmedUin = String(uin || '').trim();
         try {
+            if (platform === 'qq' && !trimmedUin) {
+                return res.status(400).json({ ok: false, error: 'QQ扫码必须提供待登录QQ号' });
+            }
             // ========== Ipad860 iPad/车机 微信协议直连 ==========
             if (platform === 'wx_ipad' || platform === 'wx_car') {
                 const thirdPartyCfg = store.getThirdPartyApiConfig();
@@ -1888,7 +1906,7 @@ function startAdminServer(dataProvider) {
                     res.json({ ok: false, error: wxRes.msg || '获取微信二维码失败' });
                 }
             } else {
-                const result = await MiniProgramLoginSession.requestLoginCode(uin);
+                const result = await MiniProgramLoginSession.requestLoginCode(trimmedUin);
                 res.json({ ok: true, data: result });
             }
         } catch (e) {
@@ -1898,11 +1916,15 @@ function startAdminServer(dataProvider) {
 
     app.post('/api/qr/check', async (req, res) => {
         const { code, platform = 'qq', uin = '' } = req.body || {};
+        const trimmedUin = String(uin || '').trim();
         if (!code) {
             return res.status(400).json({ ok: false, error: 'Missing code' });
         }
 
         try {
+            if (platform === 'qq' && !trimmedUin) {
+                return res.status(400).json({ ok: false, error: 'QQ扫码必须提供待登录QQ号' });
+            }
             // ========== Ipad860 iPad/车机 微信协议检测 ==========
             if (platform === 'wx_ipad' || platform === 'wx_car') {
                 const thirdPartyCfg = store.getThirdPartyApiConfig();
@@ -2104,7 +2126,7 @@ function startAdminServer(dataProvider) {
                     res.json({ ok: true, data: { status: 'Error', error: wxCheckRes.msg || '异常状态' } });
                 }
             } else {
-                const result = await MiniProgramLoginSession.queryStatus(code);
+                const result = await MiniProgramLoginSession.queryStatus(code, trimmedUin);
 
                 if (result.status === 'OK') {
                     const ticket = result.ticket;

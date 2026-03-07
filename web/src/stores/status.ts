@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { io } from 'socket.io-client'
 import { ref } from 'vue'
 import api from '@/api'
-import { adminToken, clearAuth } from '@/utils/auth'
+import { adminToken, clearAuth, registerDisconnectRealtimeHook } from '@/utils/auth'
 
 // Define interfaces for better type checking
 interface DailyGift {
@@ -281,6 +281,8 @@ export const useStatusStore = defineStore('status', () => {
     realtimeConnected.value = false
     lastSubscribedAccountId = ''
   }
+
+  registerDisconnectRealtimeHook(disconnectRealtime)
 
   async function fetchStatus(accountId: string) {
     if (!accountId)

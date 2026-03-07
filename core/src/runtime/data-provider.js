@@ -46,7 +46,14 @@ function createDataProvider(options) {
             const accountId = await resolveAccountRefId(accountRef);
             if (!accountId) return buildDefaultStatus('');
             const w = workers[accountId];
-            if (!w || !w.status) return buildDefaultStatus(accountId);
+            if (!w || !w.status) {
+                const list = await getStoredAccountsList();
+                const account = list.find(a => String(a.id || '') === String(accountId));
+                return {
+                    ...buildDefaultStatus(accountId),
+                    wsError: account && account.wsError ? account.wsError : null,
+                };
+            }
             return {
                 ...buildDefaultStatus(accountId),
                 ...normalizeStatusForPanel(w.status, accountId, w.name),
@@ -171,7 +178,7 @@ function createDataProvider(options) {
                     }
                 } else {
                     a.connected = false;
-                    a.wsError = null;
+                    a.wsError = a.wsError || null;
                 }
 
                 if (worker && worker.status) {

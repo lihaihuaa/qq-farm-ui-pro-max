@@ -106,6 +106,14 @@ function createWorkerManager(options) {
             wsError: null,
         };
 
+        try {
+            addOrUpdateAccount({
+                id: account.id,
+                running: true,
+                wsError: null,
+            });
+        } catch { }
+
         // 发送启动指令
         child.send({
             type: 'start',
@@ -149,6 +157,13 @@ function createWorkerManager(options) {
             }
 
             if (current && current.process === child) {
+                try {
+                    addOrUpdateAccount({
+                        id: account.id,
+                        running: false,
+                        wsError: current.wsError || null,
+                    });
+                } catch { }
                 delete workers[account.id];
             }
         });
@@ -161,6 +176,13 @@ function createWorkerManager(options) {
 
         const proc = worker.process;
         worker.stopping = true;
+        try {
+            addOrUpdateAccount({
+                id: accountId,
+                running: false,
+                wsError: worker.wsError || null,
+            });
+        } catch { }
         worker.process.send({ type: 'stop' });
         // process.kill will happen in 'exit' handler or we can force it
         managerScheduler.setTimeoutTask(`force_kill_${accountId}`, 1000, () => {
@@ -247,6 +269,13 @@ function createWorkerManager(options) {
                 worker.disconnectedSince = 0;
                 worker.autoDeleteTriggered = false;
                 worker.wsError = null;
+                try {
+                    addOrUpdateAccount({
+                        id: accountId,
+                        running: true,
+                        wsError: null,
+                    });
+                } catch { }
             } else if (!worker.stopping) {
                 const now = Date.now();
                 if (!worker.disconnectedSince) worker.disconnectedSince = now;
@@ -307,7 +336,15 @@ function createWorkerManager(options) {
         } else if (msg.type === 'ws_error') {
             const code = Number(msg.code) || 0;
             const message = msg.message || '';
-            worker.wsError = { code, message, at: Date.now() };
+            const wsError = { code, message, at: Date.now() };
+            worker.wsError = wsError;
+            try {
+                addOrUpdateAccount({
+                    id: accountId,
+                    running: false,
+                    wsError,
+                });
+            } catch { }
             if (code === 400) {
                 addAccountLog(
                     'ws_400',
@@ -315,6 +352,7 @@ function createWorkerManager(options) {
                     accountId,
                     worker.name,
                 );
+                stopWorker(accountId);
             }
         } else if (msg.type === 'account_kicked') {
             const reason = msg.reason || '未知';
