@@ -19,9 +19,11 @@
 3. **环境免疫筑基**：针对远端环境组建（如原生 Alpine 系统 TLS 超期以及 Node C++ 包下载封锁），新构 Dockerfile 强制置入网络反解预热 —— 打入**阿里 npm 加速节点**与**系统依赖镜像包**。
 4. **弹性升级与历史对接**：远端驱动采用 `docker compose up -d --force-recreate`，它将自动牵引对位并无伤承载旧存在的持久化日志目录与高危账套库，重启最终甩出实时 50 行追溯尾日志以供审定体验。
 
-## 4. GitHub 开源双子星同步逻辑 (github-sync)
-- 仅提供专门定制化排除同步 Shell 向 `/github-sync` 同步干预完毕后的核心工程。
-- 内库永远需要携带 `.env.example` 与安全脱敏版 `accounts.json`，在任何迁移触发前，杜绝隐私账套库以及服务器联通特权 token 进行过线外溢！
+## 4. 根目录主仓直推逻辑
+- `github-sync` 工作流已退役，当前以根目录主仓为唯一开发与推送入口。
+- 发布前必须在根目录执行 `bash scripts/github/check-sensitive-info.sh .`，确认无 `.env`、数据库、日志与真实凭据泄露。
+- 旧 `github-sync` 仅保留在本地归档 `archive/retired-repos/github-sync-main-20260307/`，不得重新放回根目录主流程。
+- 统一参考：`docs/guides/REPO_ROOT_WORKFLOW_GUIDE.md`
 
 > 💡 **项目凌乱时的紧急自救**：
 > 当频繁开发导致杂碎重开，不要犹豫，直接参照 SOP 第一道防线清剿。如遇不可信的结构状态点，优先排查忽略阻断名单。此文件具有核心纠偏权。

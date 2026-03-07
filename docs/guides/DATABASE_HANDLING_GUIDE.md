@@ -1,6 +1,11 @@
 # 数据库文件处理指南
 
-> **重要说明：** `core/data/farm-bot.db` 已排除在 GitHub 同步之外，但**不影响本地和服务器使用**
+> **重要说明：** 运行时数据库文件不会进入 Git 历史，但**不影响本地和服务器使用**。
+>
+> **路径说明（2026-03-07 更新）：**
+> - 源码逻辑默认仍兼容 `core/data/`
+> - 当前整理后的本地工作区将物理数据入口统一到了根目录 `data/`
+> - 因此本文出现的 `core/data/...`，在当前工作区可等价理解为 `data/...`
 
 ---
 
@@ -150,10 +155,8 @@ CREATE TABLE friends_cache (
 git clone https://github.com/your-username/qq-farm-bot.git
 cd qq-farm-bot
 
-# 2. 复制配置模板
+# 2. 复制环境模板
 cp core/.env.ai.example core/.env.ai
-cp core/data/store.json.example core/data/store.json
-cp core/data/accounts.json.example core/data/accounts.json
 
 # 3. 编辑配置（填入 API 密钥等）
 nano core/.env.ai
@@ -165,7 +168,7 @@ pnpm install
 pnpm dev:core
 
 # ✅ 输出示例：
-# [database] 数据库初始化成功：/path/to/core/data/farm-bot.db
+# [database] 数据库初始化成功：/path/to/data/farm-bot.db
 # [database] 数据库迁移完成，当前版本：4
 ```
 
@@ -182,24 +185,26 @@ pnpm dev:core
 ### 场景 3：服务器部署
 
 ```bash
-# 1. 上传代码（使用同步脚本）
-./prepare-github-sync.sh
-cd github-sync
-scp -r * user@server:/path/to/qq-farm-bot/
+# 1. 在根目录主仓提交并推送
+git add -A
+git commit -m "chore: deploy update"
+git push origin <branch>
 
-# 2. 服务器上配置
+# 2. 将代码同步到服务器（任选其一）
+rsync -av --exclude node_modules --exclude logs --exclude data ./ user@server:/path/to/qq-farm-bot/
+# 或使用你现有的 CI / 拉取流程
+
+# 3. 服务器上配置
 ssh user@server
 cd /path/to/qq-farm-bot
 
-# 复制配置模板
+# 复制环境模板
 cp core/.env.ai.example core/.env.ai
-cp core/data/store.json.example core/data/store.json
-cp core/data/accounts.json.example core/data/accounts.json
 
 # 编辑配置
 nano core/.env.ai
 
-# 3. 启动（自动创建数据库）
+# 4. 启动（自动创建数据库）
 pnpm install
 pnpm dev:core
 
@@ -359,9 +364,11 @@ sqlite3 core/data/farm-bot.db "PRAGMA wal_checkpoint(TRUNCATE);"
 ### 下一步
 
 1. ✅ 理解数据库处理逻辑
-2. ✅ 使用同步脚本准备 GitHub 上传
+2. ✅ 使用根目录主仓工作流准备推送
 3. ✅ 本地测试数据库自动创建
 4. ✅ 推送到 GitHub
+
+更多发布细节见：`docs/guides/REPO_ROOT_WORKFLOW_GUIDE.md`
 
 ---
 

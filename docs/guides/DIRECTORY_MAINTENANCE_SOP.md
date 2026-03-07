@@ -79,37 +79,29 @@ mv Plan_20260303_XXX.html docs/plans/2026-03-03/
 
 ---
 
-## 四、`github-sync` 同步流程
+## 四、根目录主仓推送流程
 
-### 步骤 1：执行同步脚本
+### 步骤 1：敏感信息扫描
 
 ```bash
-bash scripts/github/prepare-github-sync.sh
+bash scripts/github/check-sensitive-info.sh .
 ```
 
-### 步骤 2：敏感信息扫描
+### 步骤 2：提交当前分支
 
 ```bash
-bash scripts/github/check-sensitive-info.sh
-```
-
-❌ 确认无：API Key、数据库密码、真实 IP、用户隐私
-
-### 步骤 3：提交推送
-
-```bash
-cd github-sync
 git add -A
 git status     # 人工检查
-git commit -m "sync: YYYY-MM-DD 同步描述"
-git push origin main
+git commit -m "chore: YYYY-MM-DD 目录整理"
+git push origin <branch>
 ```
 
-### 步骤 4：验证
+### 步骤 3：验证
 
 - [ ] GitHub README 截图正常显示
 - [ ] 无 `services/ipad860/` 泄露（不应同步）
 - [ ] 无 `docs/plans/`、`docs/dev-notes/` 泄露
+- [ ] `github-sync` 未重新回到根目录主流程
 
 ---
 
@@ -140,7 +132,7 @@ git commit -m "refactor: 移动报告类文件"
 
 - `package.json` 脚本路径
 - `README.md` 图片/文件链接
-- `prepare-github-sync.sh` 源路径
+- `docs/guides/REPO_ROOT_WORKFLOW_GUIDE.md`
 - Shell 脚本中的 Docker Compose 路径
 
 ### 5. 构建验证
@@ -167,8 +159,8 @@ git checkout main && git merge refactor/dir-cleanup-YYYYMMDD
 | `core/` 根放测试文件 | 混淆源码 |
 | 中文目录名放 `docs/` 顶层 | URL 编码问题 |
 | `.env` 提交 GitHub | 敏感泄露 |
-| `github-sync/` 同步 `docs/plans/` | 内部计划不公开 |
-| `github-sync/` 同步 `services/ipad860/` | 私有服务不公开 |
+| 旧 `github-sync/` 回流根目录 | 历史隔离仓已退役 |
+| 历史草稿直接并入主文档 | 造成口径混乱 |
 | 二进制文件（`.dll`、`.dat`、可执行文件）进 Git | 仓库膨胀 |
 | 散落独立服务在根目录 | 用 `services/<名>` 收纳 |
 

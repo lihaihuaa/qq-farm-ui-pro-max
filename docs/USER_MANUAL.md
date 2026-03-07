@@ -125,7 +125,7 @@ docker run -d \
   --restart unless-stopped \
   -p 3080:3000 \
   -v ./data:/app/core/data \
-  -v ./logs:/app/core/logs \
+  -v ./logs:/app/logs \
   -v ./backup:/app/core/backup \
   -e ADMIN_PASSWORD=qq007qq008 \
   -e TZ=Asia/Shanghai \
@@ -342,7 +342,7 @@ tar -xzf farm-bot-backup-20260301.tar.gz -C ./
 
 ### 9.4 SQLite 单机模式
 
-备份文件：`core/data/farm-bot.db`
+备份文件：优先使用根目录 `data/farm-bot.db`；源码兼容路径仍为 `core/data/farm-bot.db`
 
 ---
 

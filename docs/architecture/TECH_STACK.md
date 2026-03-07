@@ -413,7 +413,7 @@ services:
       - LOG_LEVEL=info
     volumes:
       - ./data:/app/core/data
-      - ./logs:/app/core/logs
+      - ./logs:/app/logs
       - ./backup:/app/core/backup
     deploy:
       resources:

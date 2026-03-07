@@ -47,7 +47,7 @@ services:
       # 核心数据（账号、SQLite 备份等）
       - bot-data:/app/core/data
       # 日志文件
-      - bot-logs:/app/core/logs
+      - bot-logs:/app/logs
 
     networks:
       - farm-net

@@ -23,7 +23,7 @@ services:
       - IPAD860_URL=http://pro-max-0304-ipad860:8058
     volumes:
       - bot-data:/app/core/data
-      - bot-logs:/app/core/logs
+      - bot-logs:/app/logs
     networks:
       - farm-net
     healthcheck:

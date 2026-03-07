@@ -1,6 +1,8 @@
 # QQ 农场助手 - 部署执行计划
 
 > 基于 [DEPLOYMENT_SOP.md](./DEPLOYMENT_SOP.md) 整理的可执行步骤清单
+>
+> 注：`github-sync` 自 2026-03-07 起已退役，当前以根目录主仓与 `docs/guides/REPO_ROOT_WORKFLOW_GUIDE.md` 为准。
 
 **当前版本**：v4.0.0  
 **执行日期**：2026-03-03
@@ -35,7 +37,7 @@ COPY logs/development/Update.log ./Update.log
 
 ```bash
 cd /Users/smdk000/文稿/qq/qq-farm-bot-ui-main_副本
-./github-sync/scripts/docker-build-and-push.sh v4.0.0
+./scripts/docker/docker-build-multiarch.sh v4.0.0
 ```
 
 **说明**：
@@ -80,27 +82,24 @@ cd /Users/smdk000/文稿/qq/qq-farm-bot-ui-main_副本
 4. **更新日志**：引用 `logs/development/Update.log`  
    - 可增加「更新日志」章节，说明最新版本变更
 
-### 3.3 同步脚本到 github-sync
+### 3.3 根目录主仓推送准备
 
 ```bash
-./scripts/github/prepare-github-sync.sh
+bash scripts/github/check-sensitive-info.sh .
 ```
 
 ---
 
-## 阶段四：GitHub 推送
+## 阶段四：Git 主仓推送
 
 ### 4.1 增量提交
 
 ```bash
-cd github-sync
-git add .
+git add -A
 git status
 git commit -m "chore: v4.0.0 部署脚本与文档更新"
-git push origin main
+git push origin <branch>
 ```
-
-**说明**：若主仓库在项目根目录，则从根目录执行 `git add`、`git commit`、`git push`。
 
 ---
 
@@ -113,7 +112,7 @@ git push origin main
 - [ ] 一键脚本 URL 正确
 - [ ] 本地部署与微信扫码说明已补充
 - [ ] Update.log 引用已添加
-- [ ] 部署脚本已同步到 github-sync
+- [ ] 部署脚本已在根目录主仓推送
 - [ ] 代码已推送到 GitHub
 
 ---
@@ -125,8 +124,8 @@ git push origin main
 | 工作目录 | `/Users/smdk000/文稿/qq/qq-farm-bot-ui-main_副本` |
 | Dockerfile | `core/Dockerfile` |
 | Update.log | `logs/development/Update.log` |
-| 生产 Compose | `docker/docker-compose.prod.yml` 或 `github-sync/docker-compose.prod.yml` |
-| 构建脚本 | `github-sync/scripts/docker-build-and-push.sh` |
+| 生产 Compose | `docker/docker-compose.prod.yml` |
+| 构建脚本 | `scripts/docker/docker-build-multiarch.sh` |
 | 部署脚本 | `scripts/deploy/deploy-arm.sh`、`deploy-x86.sh` |
 | 开发启动 | `dev.sh` |
 | 部署 SOP | `docs/DEPLOYMENT_SOP.md` |

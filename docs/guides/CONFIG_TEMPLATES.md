@@ -114,7 +114,7 @@ services:
       - "${PORT:-3080}:3000"
     volumes:
       - ./data:/app/core/data
-      - ./logs:/app/core/logs
+      - ./logs:/app/logs
       - ./config:/app/core/config
     networks:
       - farm-network

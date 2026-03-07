@@ -1,6 +1,6 @@
 # QQ 农场助手 - 部署 SOP（标准操作流程）
 
-> 本文档定义 Docker 镜像构建、推送、GitHub 同步、README 更新及部署教程维护的完整流程。
+> 本文档定义 Docker 镜像构建、推送、根目录主仓提交、README 更新及部署教程维护的完整流程。
 
 ---
 
@@ -29,12 +29,12 @@
 
 ### 2.2 构建 ARM + x86 双架构镜像
 
-**脚本**：`github-sync/scripts/docker-build-and-push.sh`
+**脚本**：`scripts/docker/docker-build-multiarch.sh`
 
 **执行**：
 ```bash
 cd /path/to/qq-farm-bot-ui-main_副本
-./github-sync/scripts/docker-build-and-push.sh v4.0.0
+./scripts/docker/docker-build-multiarch.sh v4.0.0
 ```
 
 **说明**：
@@ -48,29 +48,27 @@ cd /path/to/qq-farm-bot-ui-main_副本
 
 ---
 
-## 三、GitHub 源码同步
+## 三、Git 主仓推送
 
 ### 3.1 增量同步准备
 
-1. 确认 `github-sync` 目录内容与主项目一致：
+1. 检查敏感信息：
    ```bash
-   ./scripts/github/prepare-github-sync.sh
+   bash scripts/github/check-sensitive-info.sh .
    ```
 
-2. 检查敏感信息：
+2. 确认当前分支构建和部署脚本已更新：
    ```bash
-   cd github-sync
-   grep -r 'sk-[a-zA-Z0-9]\{32\}' . || echo '✅ 未检测到 API 密钥'
+   git status
    ```
 
 ### 3.2 推送到 GitHub
 
 ```bash
-cd github-sync
-git add .
+git add -A
 git status
-git commit -m "chore: 同步 v4.0.0 - 部署脚本与文档更新"
-git push origin main
+git commit -m "chore: 更新 v4.0.0 - 部署脚本与文档更新"
+git push origin <branch>
 ```
 
 **说明**：若实际仓库名非 `qq-farm-bot-ui`，需在 README 中统一为实际仓库名。
@@ -144,14 +142,14 @@ docker-compose -f docker-compose.prod.yml up -d
 
 | 脚本 | 路径 | 用途 |
 |------|------|------|
-| deploy-arm.sh | `scripts/deploy/` 或 `github-sync/scripts/` | ARM 一键部署 |
-| deploy-x86.sh | `scripts/deploy/` 或 `github-sync/scripts/` | x86 一键部署 |
-| docker-build-and-push.sh | `github-sync/scripts/` | 多架构构建与推送 |
+| deploy-arm.sh | `scripts/deploy/` | ARM 一键部署 |
+| deploy-x86.sh | `scripts/deploy/` | x86 一键部署 |
+| docker-build-and-push.sh | `scripts/docker/` | 多架构构建与推送 |
 
 ### 6.2 脚本统一
 
-- 确保 `scripts/deploy/` 与 `github-sync/scripts/` 中脚本版本一致
-- `prepare-github-sync.sh` 会将 `scripts/deploy/*.sh` 复制到 `github-sync/scripts/`
+- 直接维护 `scripts/deploy/` 中的部署脚本
+- 根目录主仓工作流见：`docs/guides/REPO_ROOT_WORKFLOW_GUIDE.md`
 
 ---
 
@@ -173,8 +171,8 @@ docker-compose -f docker-compose.prod.yml up -d
 3. 执行 Docker 构建与推送
 4. 更新 README（部署教程、脚本链接、Update.log 引用）
 5. 更新部署脚本（确保与 README 一致）
-6. 执行 `prepare-github-sync.sh` 准备同步内容
-7. 增量提交并推送到 GitHub
+6. 执行敏感信息检查
+7. 增量提交并推送当前分支到 GitHub
 
 ---
 
@@ -187,7 +185,7 @@ docker-compose -f docker-compose.prod.yml up -d
 - [ ] 一键脚本 URL 指向正确 GitHub 仓库
 - [ ] 本地部署与微信扫码说明已补充
 - [ ] Update.log 已更新且 README 有引用
-- [ ] 部署脚本已同步到 github-sync
+- [ ] 部署脚本已在根目录主仓推送
 - [ ] 代码已增量推送到 GitHub
 
 ---

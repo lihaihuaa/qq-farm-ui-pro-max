@@ -45,7 +45,7 @@
 ./scripts/auto-update-docker.sh 3.3.3
 
 # 脚本会自动完成：
-# - 更新 github-sync 文件夹
+# - 检查当前根目录主仓状态
 # - 提交并推送到 GitHub
 # - 构建多平台 Docker 镜像
 # - 推送到 Docker Hub
@@ -53,37 +53,29 @@
 
 ### 方法二：分步执行
 
-#### 步骤 1：更新同步文件夹
+#### 步骤 1：检查当前工作区
 
 ```bash
-# 重新生成 github-sync 文件夹
-./prepare-github-sync.sh
+bash scripts/github/check-sensitive-info.sh .
+git status
 ```
 
 #### 步骤 2：提交到 GitHub
 
 ```bash
-cd github-sync
-
-# 检查变更
-git status
-
 # 添加并提交
-git add .
+git add -A
 git commit -m "Update to v3.3.3"
 
 # 推送
-git push origin main
+git push origin <branch>
 ```
 
 #### 步骤 3：构建 Docker 镜像
 
 ```bash
-# 回到项目根目录
-cd ..
-
 # 执行多平台构建
-./scripts/docker-build-multiarch.sh 3.3.3
+./scripts/docker/docker-build-multiarch.sh 3.3.3
 ```
 
 #### 步骤 4：验证推送
@@ -219,11 +211,10 @@ jobs:
 # 1. 修改代码
 # 编辑相关文件
 
-# 2. 提交到 github-sync
-cd github-sync
-git add .
+# 2. 提交当前分支
+git add -A
 git commit -m "Fix: 修复某个问题"
-git push origin main
+git push origin <branch>
 
 # 3. GitHub Actions 自动构建
 # 访问 https://github.com/smdk000/qq-farm-ui-pro-max/actions 查看进度
@@ -235,23 +226,20 @@ git push origin main
 # 1. 修改代码并更新版本号
 NEW_VERSION="3.4.0"
 
-# 2. 更新同步文件夹
-./prepare-github-sync.sh
-
-# 3. 提交到 GitHub
-cd github-sync
-git add .
+# 2. 提交到 GitHub
+git add -A
 git commit -m "Release v${NEW_VERSION}"
-git push origin main
+git push origin <branch>
 
-# 4. 创建 Git Tag
-cd ..
+# 3. 创建 Git Tag
 git tag v${NEW_VERSION}
 git push origin v${NEW_VERSION}
 
-# 5. 手动构建（可选，如果 GitHub Actions 未触发）
-./scripts/docker-build-multiarch.sh ${NEW_VERSION}
+# 4. 手动构建（可选，如果 GitHub Actions 未触发）
+./scripts/docker/docker-build-multiarch.sh ${NEW_VERSION}
 ```
+
+> `github-sync` 自 2026-03-07 起已退役，当前流程以根目录主仓为准。详见 `docs/guides/REPO_ROOT_WORKFLOW_GUIDE.md`。
 
 ---
 

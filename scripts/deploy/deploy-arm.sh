@@ -80,7 +80,7 @@ docker run -d \
   --restart unless-stopped \
   -p ${PORT}:3000 \
   -v ./data:/app/core/data \
-  -v ./logs:/app/core/logs \
+  -v ./logs:/app/logs \
   -v ./backup:/app/core/backup \
   -e ADMIN_PASSWORD=${ADMIN_PASSWORD} \
   -e TZ=Asia/Shanghai \

@@ -45,7 +45,7 @@ services:
       # 核心数据（账号配置、数据库等）
       - ./data:/app/core/data
       # 日志文件（可选）
-      - ./logs:/app/core/logs
+      - ./logs:/app/logs
       # 备份目录（可选）
       - ./backup:/app/core/backup
 

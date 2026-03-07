@@ -63,7 +63,7 @@
 |--------|------|
 | `deploy/` | 部署脚本 |
 | `docker/` | Docker 镜像构建、推送 |
-| `github/` | GitHub 同步（prepare-github-sync.sh、check-sensitive-info.sh） |
+| `github/` | Git 安全检查与历史同步脚本（check-sensitive-info.sh 等） |
 | `service/` | 服务管理（ai-autostart 等） |
 | `utils/` | 通用工具脚本 |
 
@@ -115,12 +115,12 @@
 
 ---
 
-## GitHub 同步
+## Git 工作流
 
-### `github-sync/`
+### 根目录主仓
 
-由 `scripts/github/prepare-github-sync.sh` 生成，包含脱敏后的公开代码。  
-独立维护，不手动编辑。
+当前以项目根目录为唯一 Git 主仓。  
+旧 `github-sync` 仅保留在本地归档 `archive/retired-repos/github-sync-main-20260307/`，不再参与日常提交流程。
 
 ---
 

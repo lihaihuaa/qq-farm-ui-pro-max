@@ -131,30 +131,31 @@ git push origin $VERSION
 
 ---
 
-## 六、GitHub 同步（脱敏发布）
+## 六、源码推送（根目录主仓）
 
-> 将本地开发仓库同步到公开的 `github-sync` 结构，用于推送到 GitHub 公开仓库。
+> `github-sync` 工作流已于 2026-03-07 退役。当前直接在根目录主仓提交、推送和发版；旧同步仓仅保留在本地归档。
 
-### 6.1 执行同步准备脚本
+### 6.1 敏感信息检查
 
 ```bash
 # 在项目根目录执行
-./scripts/github/prepare-github-sync.sh
+bash scripts/github/check-sensitive-info.sh .
 ```
 
-### 6.2 进入同步目录并推送
+### 6.2 提交并推送当前分支
 
 ```bash
-cd github-sync
-git add .
-git commit -m "chore: sync vX.Y.Z"
-git push origin main
+git add -A
+git status
+git commit -m "chore: release vX.Y.Z"
+git push origin <branch>
 ```
 
-### 6.3 同步目录说明
+### 6.3 合并到主分支
 
-- 包含：`core/src`、`web/src`、`docs`、`pic`、配置模板等
-- 不包含：`.env`、`data/*.json`、`data/*.db`、`logs/`、`node_modules/`
+- 通过 PR 或人工合并进入 `main`
+- 需要发版时，再在 `main` 上创建 tag 并推送
+- 参考：`docs/guides/REPO_ROOT_WORKFLOW_GUIDE.md`
 
 ---
 
@@ -177,10 +178,10 @@ git push origin main
 - ✅ 优化 xxx
 ```
 
-### 7.3 同步到 github-sync
+### 7.3 推送说明
 
-- `prepare-github-sync.sh` 会复制 `CHANGELOG.DEVELOPMENT.md` 到 `github-sync/`
-- 若单独维护 `github-sync` 的更新说明，可编辑 `github-sync/SYNC_README.md`
+- `CHANGELOG.DEVELOPMENT.md` 现在直接随根目录主仓提交
+- 不再维护独立的 `github-sync/SYNC_README.md`
 
 ---
 
@@ -278,8 +279,8 @@ docker run -d --name qq-farm-bot -p 3000:3000 smdk000/qq-farm-bot-ui:latest
 | 7 | `git commit -m "chore: release vX.Y.Z"` | 提交成功 |
 | 8 | `git tag -a vX.Y.Z -m "Release vX.Y.Z"` | 标签已创建 |
 | 9 | `git push origin main && git push origin vX.Y.Z` | 推送成功 |
-| 10 | `./scripts/github/prepare-github-sync.sh` | 同步目录已生成 |
-| 11 | `cd github-sync && git add . && git commit -m "chore: sync vX.Y.Z" && git push` | GitHub 同步完成 |
+| 10 | `bash scripts/github/check-sensitive-info.sh .` | 敏感信息检查通过 |
+| 11 | `git push origin <branch>` | 分支已推送 |
 | 12 | 可选：Actions → release → Run workflow | 二进制已发布 |
 | 13 | 可选：Docker 由 tag 推送自动触发 | 镜像已构建并推送 |
 
@@ -301,7 +302,7 @@ docker run -d --name qq-farm-bot -p 3000:3000 smdk000/qq-farm-bot-ui:latest
 ### 12.3 部署脚本 404
 
 - 确认仓库名与分支：`smdk000/qq-farm-ui-pro-max`、`main`
-- 确认 `github-sync/scripts/` 下存在 `deploy-x86.sh`、`deploy-arm.sh`
+- 确认 `scripts/deploy/` 下存在 `deploy-x86.sh`、`deploy-arm.sh`
 
 ---
 
@@ -315,9 +316,9 @@ docker run -d --name qq-farm-bot -p 3000:3000 smdk000/qq-farm-bot-ui:latest
 | 开发更新日志 | `/CHANGELOG.DEVELOPMENT.md` |
 | Docker 工作流 | `/.github/workflows/docker-build-push.yml` |
 | 二进制发布工作流 | `/.github/workflows/release.yml` |
-| GitHub 同步脚本 | `/scripts/github/prepare-github-sync.sh` |
-| x86 部署脚本 | `/github-sync/scripts/deploy-x86.sh` |
-| ARM 部署脚本 | `/github-sync/scripts/deploy-arm.sh` |
+| 敏感信息检查脚本 | `/scripts/github/check-sensitive-info.sh` |
+| x86 部署脚本 | `/scripts/deploy/deploy-x86.sh` |
+| ARM 部署脚本 | `/scripts/deploy/deploy-arm.sh` |
 
 ---
 

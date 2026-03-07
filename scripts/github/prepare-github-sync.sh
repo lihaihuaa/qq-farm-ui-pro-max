@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # GitHub 同步准备脚本
+# 历史脚本：`github-sync` 工作流已于 2026-03-07 退役，当前以根目录主仓直推为准。
 # 用法：./prepare-github-sync.sh
 
 set -e
