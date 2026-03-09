@@ -62,8 +62,16 @@ jobs:
           else
             VERSION="main-${GITHUB_SHA::7}"
           fi
+          NORMALIZED_VERSION="${VERSION#v}"
+          PUSH_NORMALIZED="false"
+          if [ "${NORMALIZED_VERSION}" != "${VERSION}" ]; then
+            PUSH_NORMALIZED="true"
+          fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "normalized_version=${NORMALIZED_VERSION}" >> $GITHUB_OUTPUT
+          echo "push_normalized=${PUSH_NORMALIZED}" >> $GITHUB_OUTPUT
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "NORMALIZED_VERSION=${NORMALIZED_VERSION}" >> $GITHUB_ENV
 
       - name: Log in to Docker Hub
         if: github.event.inputs.push_to_docker_hub != 'false'
@@ -89,6 +97,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.normalized_version }},enable=${{ steps.version.outputs.push_normalized == 'true' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=branch
             type=sha,prefix=sha-
@@ -132,8 +141,14 @@ jobs:
           echo "| 仓库 | 镜像名称 |" >> $GITHUB_STEP_SUMMARY
           echo "|------|---------|" >> $GITHUB_STEP_SUMMARY
           echo "| Docker Hub | \`${{ env.DOCKERHUB_IMAGE }}:${{ steps.version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.version.outputs.push_normalized }}" = "true" ]; then
+            echo "| Docker Hub | \`${{ env.DOCKERHUB_IMAGE }}:${{ steps.version.outputs.normalized_version }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "| Docker Hub | \`${{ env.DOCKERHUB_IMAGE }}:latest\` |" >> $GITHUB_STEP_SUMMARY
           echo "| GitHub Container Registry | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.version.outputs.push_normalized }}" = "true" ]; then
+            echo "| GitHub Container Registry | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.normalized_version }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "| GitHub Container Registry | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 快速部署" >> $GITHUB_STEP_SUMMARY
