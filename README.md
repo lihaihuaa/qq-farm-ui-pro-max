@@ -2,7 +2,7 @@
 
 > 🔴 **醒目提醒：现在扫码登录失效，等其他大佬修复，本仓库暂停更新功能，仅修复bug了。**基于 Node.js 的 QQ 农场自动化工具，支持多账号管理、Web 控制面板、实时日志与数据分析。
 
-![版本](https://img.shields.io/badge/版本-v4.5.12-blue)
+![版本](https://img.shields.io/badge/版本-v4.5.13-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
 ![Redis](https://img.shields.io/badge/Redis-6.0-red)
@@ -259,7 +259,7 @@ ADMIN_PASSWORD='你的强密码' pnpm dev:core
 本节默认假设服务器可以直接访问 GitHub 和 Docker Hub 官方源。一键脚本默认从 GitHub 官方地址下载部署文件，并从 Docker Hub 官方仓库拉取镜像；若主程序镜像或 `ipad860` 镜像拉取失败，脚本会回退到下载当前仓库源码包并在服务器本地构建。
 如果你的服务器在中国大陆网络环境，优先查看 [deploy/README.cn.md](deploy/README.cn.md)，里面单独整理了离线包和预载镜像的部署方式。
 
-自 `v4.5.12` 起，一键安装默认按 MySQL 正式链路初始化，账号新增会在返回成功前强制落 MySQL；只要拉到 `v4.5.12+` 主程序镜像，全新安装不会再复现“添加账号成功但切换/刷新后消失”的问题。
+自 `v4.5.13` 起，一键安装默认按 MySQL 正式链路初始化；账号新增会在返回成功前强制落 MySQL，体验卡生成/续费会把到期时间写回并自动修复旧卡历史。只要拉到 `v4.5.13+` 主程序镜像，全新安装不会再复现“添加账号成功但切换/刷新后消失”，已部署环境更新后也不会再出现体验卡状态漂移。
 
 ### 一键脚本
 
@@ -285,7 +285,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/m
 如需固定镜像版本或覆盖仓库，可在 `.env` 中设置：
 
 ```bash
-APP_IMAGE=smdk000/qq-farm-bot-ui:latest
+APP_IMAGE=smdk000/qq-farm-bot-ui:4.5.13
 MYSQL_IMAGE=mysql:8.0
 REDIS_IMAGE=redis:7-alpine
 IPAD860_IMAGE=smdk000/ipad860:latest
@@ -330,12 +330,12 @@ cd /opt/qq-farm-bot-current
 bash update-app.sh
 
 # 如需切到指定版本
-bash update-app.sh --image smdk000/qq-farm-bot-ui:v4.5.12
+bash update-app.sh --image smdk000/qq-farm-bot-ui:4.5.13
 ```
 
 补充说明：
 - `deploy/init-db/01-init.sql` 只会在 MySQL 空数据卷首次启动时执行。
-- 已部署环境如果直接更新到 `v4.5.12+`，主程序启动阶段会自动补齐缺失表/列，并修复账号持久化“假成功”问题。
+- 已部署环境如果直接更新到 `v4.5.13+`，主程序启动阶段会自动补齐缺失表/列，并修复账号持久化“假成功”以及体验卡续费状态漂移问题。
 - 如果服务器仍在运行旧镜像，即使部署脚本和 SQL 已更新，账号切换后丢失的问题仍可能复现。
 
 ## 📊 验证部署成功
@@ -641,7 +641,7 @@ Docker 会自动选择适合您系统架构的镜像版本。
 
 **维护者**: smdk000  
 **最后更新**: 2026-03-09  
-**版本**: v4.5.12
+**版本**: v4.5.13
 
 ## 多用户模式
 

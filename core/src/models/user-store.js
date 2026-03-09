@@ -194,11 +194,58 @@ async function renewTrialUser(username, callerRole) {
     const days = config.days || 1;
     const trialCode = generateTrialCardCode();
     const newCard = await createCard('体验卡续费（自动）', CARD_TYPES.TRIAL, days, trialCode);
-    return await renewUser(username, newCard.code);
+    const result = await renewUser(username, newCard.code);
+    if (!result.ok) {
+        try {
+            await deleteCard(newCard.code);
+        } catch (cleanupError) {
+            console.error('体验卡续费失败后的回滚清理失败:', cleanupError.message);
+        }
+    }
+    return result;
 }
 
 let users = [];
 let cards = [];
+
+function normalizeCardDays(days, type) {
+    return Number.isFinite(Number(days)) ? Number(days) : getDefaultDaysForType(type);
+}
+
+function getCardEffectiveTime(row) {
+    if (row.used_at) {
+        return new Date(row.used_at).getTime();
+    }
+    if (row.created_at) {
+        return new Date(row.created_at).getTime();
+    }
+    return Date.now();
+}
+
+function computeCardExpiresAt(previousExpiresAt, usedAt, type, days) {
+    if (type === CARD_TYPES.FOREVER) {
+        return null;
+    }
+
+    const normalizedDays = normalizeCardDays(days, type);
+    if (!normalizedDays || normalizedDays <= 0) {
+        return null;
+    }
+
+    const baseTime = previousExpiresAt && previousExpiresAt > usedAt
+        ? previousExpiresAt
+        : usedAt;
+    return baseTime + normalizedDays * 24 * 60 * 60 * 1000;
+}
+
+function getTrialMaxAccounts() {
+    try {
+        const store = require('./store');
+        return store.getTrialCardConfig().maxAccounts || 1;
+    } catch (e) {
+        return 1;
+    }
+}
 
 async function loadUsers() {
     try {
@@ -213,23 +260,59 @@ async function loadUsers() {
             createdAt: new Date(r.created_at).getTime()
         }));
 
-        // Populate card info for users by joining cards table if needed, however since users table doesn't have card_code we look at cards table usedBy
-        const [cardRows] = await pool.query('SELECT cards.*, users.username as usedBy FROM cards LEFT JOIN users ON cards.used_by = users.id WHERE cards.used_by IS NOT NULL');
+        const usersByName = new Map(users.map(u => [u.username, u]));
+
+        // 顺序回放用户已使用卡密，确保续费后的当前卡状态可从历史中稳定重建。
+        const [cardRows] = await pool.query(`
+            SELECT cards.*, users.username as usedBy
+            FROM cards
+            INNER JOIN users ON cards.used_by = users.id
+            WHERE cards.used_by IS NOT NULL
+            ORDER BY cards.used_by ASC, COALESCE(cards.used_at, cards.created_at) ASC, cards.id ASC
+        `);
+
+        const repairs = [];
         cardRows.forEach(c => {
-            let u = users.find(u => u.username === c.usedBy);
+            const u = usersByName.get(c.usedBy);
             if (u) {
+                const days = normalizeCardDays(c.days, c.type);
+                const usedAt = getCardEffectiveTime(c);
+                const expiresAt = computeCardExpiresAt(u.card?.expiresAt || null, usedAt, c.type, days);
+                const dbExpiresAt = c.expires_at ? new Date(c.expires_at).getTime() : null;
+
+                if (expiresAt !== dbExpiresAt) {
+                    repairs.push({ id: c.id, expiresAt });
+                }
+
                 u.cardCode = c.code;
                 u.card = {
                     code: c.code,
                     description: c.description,
                     type: c.type,
                     typeChar: c.type,
-                    days: Number.isFinite(Number(c.days)) ? Number(c.days) : getDefaultDaysForType(c.type),
-                    expiresAt: c.expires_at ? new Date(c.expires_at).getTime() : null,
+                    days,
+                    expiresAt,
                     enabled: (u.status || 'active') !== 'banned'
                 };
+                u.maxAccounts = c.type === CARD_TYPES.TRIAL ? getTrialMaxAccounts() : 0;
             }
         });
+
+        if (repairs.length > 0) {
+            try {
+                await transaction(async (conn) => {
+                    for (const repair of repairs) {
+                        await conn.query(
+                            'UPDATE cards SET expires_at=? WHERE id=?',
+                            [repair.expiresAt ? new Date(repair.expiresAt) : null, repair.id]
+                        );
+                    }
+                });
+                console.log(`[用户系统] 已修复 ${repairs.length} 条卡密 expires_at 历史记录`);
+            } catch (repairError) {
+                console.error('修复卡密 expires_at 历史记录失败:', repairError.message);
+            }
+        }
     } catch (e) { console.error('加载用户数据失败:', e.message); }
 }
 
@@ -259,7 +342,7 @@ async function loadCards() {
             type: r.type,
             typeChar: r.type,
             description: r.description,
-            days: Number.isFinite(Number(r.days)) ? Number(r.days) : getDefaultDaysForType(r.type),
+            days: normalizeCardDays(r.days, r.type),
             enabled: r.enabled === 1,
             usedBy: r.usedBy,
             usedAt: r.used_at ? new Date(r.used_at).getTime() : null,
@@ -336,6 +419,7 @@ async function validateUser(username, password) {
             username: user.username,
             role: user.role,
             status: user.status || 'active',
+            maxAccounts: 0,
             card: null
         };
     }
@@ -354,6 +438,7 @@ async function validateUser(username, password) {
         username: user.username,
         role: user.role,
         status: user.status || 'active',
+        maxAccounts: user.maxAccounts || (user.card?.type === CARD_TYPES.TRIAL ? getTrialMaxAccounts() : 0),
         card: user.card
             ? { ...user.card, enabled: (user.status || 'active') !== 'banned' }
             : null
@@ -444,6 +529,7 @@ async function registerUser(username, password, cardCode) {
     card.usedBy = username;
     card.usedAt = now;
     card.enabled = false;
+    card.expiresAt = expiresAt;
 
     // 记录操作日志
     logUserAction('register', username, {
@@ -519,8 +605,8 @@ async function renewUser(username, cardCode) {
 
     await transaction(async (conn) => {
         await conn.query(
-            "UPDATE cards SET enabled=?, used_by=(SELECT id FROM users WHERE username = ?), used_at=? WHERE code=?",
-            [0, username, new Date(now), card.code]
+            "UPDATE cards SET enabled=?, used_by=(SELECT id FROM users WHERE username = ?), used_at=?, expires_at=? WHERE code=?",
+            [0, username, new Date(now), newExpiresAt ? new Date(newExpiresAt) : null, card.code]
         );
     });
 
@@ -531,6 +617,7 @@ async function renewUser(username, cardCode) {
     user.card.days = renewDays;
     user.card.expiresAt = newExpiresAt;
     user.card.enabled = true;
+    user.maxAccounts = card.type === CARD_TYPES.TRIAL ? getTrialMaxAccounts() : 0;
     if (user.status !== 'banned') {
         user.status = 'active';
     }
@@ -538,6 +625,7 @@ async function renewUser(username, cardCode) {
     card.usedBy = username;
     card.usedAt = now;
     card.enabled = false;
+    card.expiresAt = newExpiresAt;
 
     // 记录操作日志
     logUserAction('renew', username, {
@@ -602,11 +690,11 @@ async function updateUser(username, updates) {
         await pool.query(
             "UPDATE cards SET expires_at=? WHERE used_by=(SELECT id FROM users WHERE username = ?)",
             [user.card.expiresAt ? new Date(user.card.expiresAt) : null, username]
-        ).catch(e => console.error("Update User Card Data Error:", e.message));
+        );
         await pool.query(
             "UPDATE users SET status=? WHERE username=?",
             [user.status || 'active', username]
-        ).catch(e => console.error("Update User Card Data Error:", e.message));
+        );
     } else {
         await saveUsers();
     }
@@ -728,17 +816,19 @@ async function createCard(description, type, days, forcedCode) {
         createdAt: Date.now()
     };
 
-    cards.push(newCard);
     const pool = getPool();
     if (pool) {
         await pool.query(
             "INSERT INTO cards (code, type, description, days, enabled) VALUES (?, ?, ?, ?, ?)",
             [newCard.code, newCard.type, newCard.description || '', newCard.days, 1]
-        ).catch(e => console.error("Insert New Card Error:", e.message));
+        );
     } else {
+        cards.push(newCard);
         await saveCards();
+        return newCard;
     }
 
+    cards.push(newCard);
     return newCard;
 }
 
@@ -747,23 +837,24 @@ async function updateCard(code, updates) {
     const card = cards.find(c => c.code === code);
     if (!card) return null;
 
-    if (updates.description !== undefined) {
-        card.description = updates.description;
-    }
-
-    if (updates.enabled !== undefined) {
-        card.enabled = updates.enabled;
-    }
+    const nextDescription = updates.description !== undefined ? updates.description : card.description;
+    const nextEnabled = updates.enabled !== undefined ? updates.enabled : card.enabled;
 
     const pool = getPool();
     if (pool) {
         await pool.query(
             "UPDATE cards SET description=?, enabled=? WHERE code=?",
-            [card.description || '', card.enabled ? 1 : 0, card.code]
-        ).catch(e => console.error("Update Card Data Error:", e.message));
+            [nextDescription || '', nextEnabled ? 1 : 0, card.code]
+        );
     } else {
+        card.description = nextDescription;
+        card.enabled = nextEnabled;
         await saveCards();
+        return card;
     }
+
+    card.description = nextDescription;
+    card.enabled = nextEnabled;
     return card;
 }
 
@@ -772,14 +863,16 @@ async function deleteCard(code) {
     const idx = cards.findIndex(c => c.code === code);
     if (idx === -1) return false;
 
-    cards.splice(idx, 1);
-
     const pool = getPool();
     if (pool) {
-        await pool.query("DELETE FROM cards WHERE code=?", [code]).catch(e => console.error("Delete Card Error:", e.message));
+        await pool.query("DELETE FROM cards WHERE code=?", [code]);
     } else {
+        cards.splice(idx, 1);
         await saveCards();
+        return true;
     }
+
+    cards.splice(idx, 1);
     return true;
 }
 
@@ -802,10 +895,12 @@ async function getUserInfo(username) {
     const u = users.find(item => item.username === username);
     if (!u) return null;
     const isExpired = u.card?.expiresAt ? u.card.expiresAt < Date.now() : false;
+    const maxAccounts = u.maxAccounts || (u.card?.type === CARD_TYPES.TRIAL ? getTrialMaxAccounts() : 0);
     return {
         username: u.username,
         role: u.role || 'user',
         status: u.status || 'active',
+        maxAccounts,
         cardCode: u.cardCode || null,
         card: u.card
             ? { ...u.card, enabled: (u.status || 'active') !== 'banned' }

@@ -258,7 +258,7 @@ load_deploy_env() {
 
 get_required_images() {
     printf '%s\n' \
-        "${APP_IMAGE:-smdk000/qq-farm-bot-ui:latest}" \
+        "${APP_IMAGE:-smdk000/qq-farm-bot-ui:4.5.13}" \
         "${MYSQL_IMAGE:-mysql:8.0}" \
         "${REDIS_IMAGE:-redis:7-alpine}" \
         "${IPAD860_IMAGE:-smdk000/ipad860:latest}"

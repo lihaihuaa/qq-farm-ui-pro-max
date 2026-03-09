@@ -29,7 +29,7 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/main/scripts/deploy/fresh-install.sh)
 ```
 
-自 `v4.5.12` 起，全新一键安装会按最新 MySQL 结构初始化，账号新增会在返回成功前强制落 MySQL；只要主程序镜像版本不低于 `v4.5.12`，不会再复现“添加账号后切换/刷新消失”。
+自 `v4.5.13` 起，全新一键安装会按最新 MySQL 结构初始化，账号新增会在返回成功前强制落 MySQL，体验卡生成/续费也会把到期时间写回并自动修复旧卡历史；只要主程序镜像版本不低于 `v4.5.13`，不会再复现“添加账号后切换/刷新消失”和体验卡状态漂移。
 
 脚本会自动：
 
@@ -51,7 +51,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/m
 可选镜像配置（写入 `.env`）：
 
 ```bash
-APP_IMAGE=smdk000/qq-farm-bot-ui:latest
+APP_IMAGE=smdk000/qq-farm-bot-ui:4.5.13
 MYSQL_IMAGE=mysql:8.0
 REDIS_IMAGE=redis:7-alpine
 IPAD860_IMAGE=smdk000/ipad860:latest
@@ -96,7 +96,7 @@ cd /opt/qq-farm-bot-current
 bash update-app.sh
 
 # 如需切到指定版本
-bash update-app.sh --image smdk000/qq-farm-bot-ui:v4.5.12
+bash update-app.sh --image smdk000/qq-farm-bot-ui:4.5.13
 ```
 
 ## 验证部署
