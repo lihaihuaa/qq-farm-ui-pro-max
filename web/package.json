@@ -6,9 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "build:runtime": "vue-tsc -b && WEB_DIST_DIR=dist-runtime vite build",
     "check:ui-appearance": "node scripts/check-ui-appearance.mjs",
+    "lint:check": "eslint \"src/**/*.{ts,vue}\" \"__tests__/**/*.mjs\" \"eslint.config.js\"",
     "lint": "eslint \"src/**/*.{ts,vue}\" --fix",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:unit": "node --test --experimental-strip-types __tests__/*.test.mjs",
+    "test:regression": "pnpm exec vue-tsc -b --pretty false --force && pnpm test:unit && pnpm build:runtime"
   },
   "dependencies": {
     "@vueuse/core": "^14.2.1",

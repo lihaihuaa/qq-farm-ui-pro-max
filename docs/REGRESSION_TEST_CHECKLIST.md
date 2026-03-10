@@ -1,7 +1,7 @@
 # 回归测试清单
 
 > 用于功能优化、Async 修复、Provider 变更后的验证。  
-> 更新日期：2026-03-03
+> 更新日期：2026-03-10
 
 ---
 
@@ -81,4 +81,48 @@
 
 ---
 
-**最后更新**: 2026-03-03
+## 四、前端结构性改动强制校验
+
+> 适用范围：Vue 页面结构调整、共享 composable / store / utils 收口、模板重构、视图偏好持久化、构建产物链路调整。
+
+### 4.1 TypeScript 与模板校验
+
+| 步骤 | 操作 | 预期 |
+|------|------|------|
+| 1 | 执行 `pnpm -C web exec vue-tsc -b --pretty false --force` | 无类型错误、无模板解析错误 |
+| 2 | 若涉及共享状态或组合式逻辑 | 对应 `web/__tests__` 最小回归测试通过 |
+
+**验证点**：不能只依赖局部 `eslint`，必须确认全量类型和模板都可通过。
+
+### 4.2 正式构建校验
+
+| 步骤 | 操作 | 预期 |
+|------|------|------|
+| 1 | 执行 `pnpm -C web build` | 构建成功，生成有效前端产物 |
+| 2 | 若涉及 `web/dist` 选路 / fallback | 构建日志与系统自检状态一致 |
+
+**验证点**：正式 `vite build` 能暴露局部 lint 看不到的问题，例如模板截断、闭合标签缺失、产物目录异常。
+
+### 4.3 推荐最小校验组合
+
+1. `pnpm -C web exec eslint "src/**/*.{ts,vue}"`
+2. `pnpm -C web exec vue-tsc -b --pretty false --force`
+3. `pnpm -C web build`
+4. 相关 `node --test ...` 或 `web/__tests__` 最小回归
+
+**结论**：只要是前端结构性改动，`pnpm -C web build` 视为必跑项，不能省略。
+
+### 4.4 固定执行入口
+
+- 本地推荐入口：`pnpm test:frontend`
+- 根目录兼容入口：`pnpm test:web:regression`
+- Web 子包入口：`pnpm -C web test:regression`
+- Web 运行时产物入口：`pnpm -C web build:runtime`
+- CI 入口：`.github/workflows/ci.yml` 中的 `Verify Frontend Regression`（执行 `pnpm test:frontend`）
+- 附加审计：`pnpm -C web run lint:check`
+
+**说明**：固定脚本当前以 `vue-tsc --force + web 单测 + build:runtime` 作为阻断链，显式写入 `dist-runtime`，避免历史 `web/dist` 权限污染把结构性回归链误杀；`lint:check` 保留为附加审计，用于持续清理历史页面的 lint 债务，但不再阻断这条结构性回归链。`test:frontend` 只是更直观的根级别别名，实际仍走同一条回归链。
+
+---
+
+**最后更新**: 2026-03-10

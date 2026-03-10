@@ -23,6 +23,13 @@ const sortOptions = [
   { label: '按挂机时长', value: 'uptime' },
 ]
 
+const sortHintMap: Record<string, string> = {
+  level: '在线账号始终前置，其余账号按等级排序。',
+  gold: '在线账号始终前置，其余账号按金币排序。',
+  coupon: '在线账号始终前置，其余账号按点券排序。',
+  uptime: '在线账号始终前置，其余账号按挂机时长排序。',
+}
+
 async function fetchLeaderboard() {
   loading.value = true
   try {
@@ -85,6 +92,19 @@ function getUinLabel(item?: { uin?: string | number, platform?: string }): strin
   return `微信: ${uin}`
 }
 
+function getPlatformBadgeClass(platform?: string) {
+  const normalized = String(platform || 'qq').trim().toLowerCase()
+  if (normalized === 'qq')
+    return 'leaderboard-platform-badge leaderboard-platform-badge-qq'
+  return 'leaderboard-platform-badge leaderboard-platform-badge-wx'
+}
+
+function getLevelBadgeClass(level?: number) {
+  return Number(level || 0) > 0
+    ? 'leaderboard-level-badge leaderboard-level-badge-active'
+    : 'leaderboard-level-badge leaderboard-level-badge-empty'
+}
+
 function handleClose() {
   emit('close')
 }
@@ -92,12 +112,12 @@ function handleClose() {
 // 排名样式计算
 function getRankingClass(rank: number) {
   if (rank === 1)
-    return 'ranking-gold text-white shadow-lg' // 金
+    return 'ranking-gold leaderboard-ranking-medal shadow-lg' // 金
   if (rank === 2)
-    return 'ranking-silver text-white shadow-md' // 银
+    return 'ranking-silver leaderboard-ranking-medal shadow-md' // 银
   if (rank === 3)
-    return 'ranking-bronze text-white shadow-md' // 铜
-  return 'ranking-normal text-gray-500 dark:text-gray-400 bg-gray-100/50 dark:bg-white/5'
+    return 'ranking-bronze leaderboard-ranking-medal shadow-md' // 铜
+  return 'ranking-normal leaderboard-ranking-normal'
 }
 
 function formatNumber(num: number) {
@@ -124,6 +144,81 @@ function isAccountOnline(item: any) {
   return !!item?.connected
 }
 
+function hasSnapshot(item: any) {
+  if (!item)
+    return false
+  if (Number(item.lastStatusAt || 0) > 0)
+    return true
+  return ['level', 'gold', 'exp', 'coupon', 'uptime'].some(key => Number(item[key] || 0) > 0)
+}
+
+function getLevelText(item: any) {
+  const level = Number(item?.level || 0)
+  return level > 0 ? `Lv.${level}` : 'Lv.--'
+}
+
+function formatMetricValue(value: number, item: any) {
+  if (isAccountOnline(item) || hasSnapshot(item))
+    return formatNumber(Number(value) || 0)
+  return '-'
+}
+
+function formatUptimeValue(item: any) {
+  if (isAccountOnline(item) || hasSnapshot(item))
+    return formatUptime(Number(item?.uptime) || 0)
+  return '-'
+}
+
+function getMetricTextClass(item: any, tone: 'warning' | 'default') {
+  if (isAccountOnline(item))
+    return tone === 'warning' ? 'leaderboard-metric-online-warning' : 'leaderboard-metric-online'
+  if (hasSnapshot(item))
+    return tone === 'warning' ? 'leaderboard-metric-snapshot-warning' : 'leaderboard-metric-snapshot'
+  return 'leaderboard-metric-offline'
+}
+
+function getStatusText(item: any) {
+  if (isAccountOnline(item))
+    return '在线'
+  if (hasSnapshot(item))
+    return '离线快照'
+  return '离线'
+}
+
+function getStatusClass(item: any) {
+  if (isAccountOnline(item))
+    return 'leaderboard-status leaderboard-status-online'
+  if (hasSnapshot(item))
+    return 'leaderboard-status leaderboard-status-snapshot'
+  return 'leaderboard-status leaderboard-status-offline'
+}
+
+function getStatusDotClass(item: any) {
+  if (isAccountOnline(item))
+    return 'leaderboard-status-dot leaderboard-status-dot-online'
+  if (hasSnapshot(item))
+    return 'leaderboard-status-dot leaderboard-status-dot-snapshot'
+  return 'leaderboard-status-dot leaderboard-status-dot-offline'
+}
+
+function formatSnapshotTime(timestamp: number) {
+  if (!timestamp)
+    return ''
+  return new Date(timestamp).toLocaleString('zh-CN', { hour12: false })
+}
+
+function getStatusTitle(item: any) {
+  if (isAccountOnline(item))
+    return '实时在线数据'
+  const snapshotAt = Number(item?.lastStatusAt || 0)
+  const lastOnlineAt = Number(item?.lastOnlineAt || 0)
+  if (!snapshotAt)
+    return '暂无可用快照'
+  if (lastOnlineAt)
+    return `最近同步：${formatSnapshotTime(snapshotAt)}，最近在线：${formatSnapshotTime(lastOnlineAt)}`
+  return `最近同步：${formatSnapshotTime(snapshotAt)}`
+}
+
 onMounted(() => {
   if (props.show) {
     fetchLeaderboard()
@@ -135,21 +230,21 @@ onMounted(() => {
   <Transition name="modal">
     <div
       v-if="show"
-      class="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 sm:p-6"
+      class="leaderboard-modal fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 sm:p-6"
     >
       <!-- 背景遮罩层 -->
       <div
-        class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity"
+        class="leaderboard-backdrop absolute inset-0 backdrop-blur-sm transition-opacity"
         @click="handleClose"
       />
 
       <!-- 主体内容 -->
       <div
-        class="glass-panel relative max-h-full max-w-4xl w-full flex flex-col transform overflow-hidden border border-white/20 rounded-2xl shadow-2xl transition-all dark:border-white/10"
+        class="leaderboard-panel glass-panel relative max-h-full max-w-4xl w-full flex flex-col transform overflow-hidden rounded-2xl shadow-2xl transition-all"
         @click.stop
       >
         <!-- 头部 -->
-        <div class="flex items-center justify-between border-b border-gray-100/50 bg-white/50 px-6 py-4 backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/50">
+        <div class="leaderboard-header flex items-center justify-between px-6 py-4 backdrop-blur-md">
           <div class="flex items-center gap-3">
             <div class="h-10 w-10 flex items-center justify-center rounded-xl bg-primary-500/10 text-xl text-primary-500 dark:bg-primary-500/20">
               <div class="i-carbon-trophy" />
@@ -158,8 +253,8 @@ onMounted(() => {
               <h3 class="glass-text-main text-xl font-bold">
                 平台排行榜
               </h3>
-              <p class="mt-0.5 text-[10px] text-gray-400 tracking-tight dark:text-gray-500">
-                按等级、金币、点券或挂机时长查看全平台账号排名
+              <p class="glass-text-muted mt-0.5 text-[10px] tracking-tight">
+                在线账号始终前置，离线账号展示最近一次快照
               </p>
             </div>
           </div>
@@ -168,14 +263,14 @@ onMounted(() => {
             <div class="relative w-36">
               <select
                 v-model="sortBy"
-                class="block w-full cursor-pointer appearance-none border border-gray-200/50 rounded-lg bg-white/80 px-4 py-2 pr-8 text-sm shadow-sm transition-colors dark:border-gray-700/50 focus:border-primary-500 dark:bg-gray-800/80 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:focus:border-primary-400 dark:focus:ring-primary-400"
+                class="leaderboard-select block w-full cursor-pointer appearance-none rounded-lg px-4 py-2 pr-8 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                 @change="fetchLeaderboard"
               >
                 <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
                   {{ opt.label }}
                 </option>
               </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+              <div class="glass-text-muted pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                 <div class="i-carbon-chevron-down opacity-80" />
               </div>
             </div>
@@ -190,7 +285,7 @@ onMounted(() => {
             </BaseButton>
 
             <button
-              class="ml-2 h-8 w-8 flex items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+              class="leaderboard-close glass-text-muted hover:glass-text-main ml-2 h-8 w-8 flex items-center justify-center rounded-lg transition-colors"
               @click="handleClose"
             >
               <div class="i-carbon-close text-xl" />
@@ -200,19 +295,26 @@ onMounted(() => {
 
         <!-- 列表容器 -->
         <div class="custom-scrollbar flex-1 overflow-y-auto px-6 py-4">
-          <div v-if="loading && leaderboardData.length === 0" class="h-64 flex flex-col items-center justify-center text-gray-400">
+          <div class="leaderboard-hint glass-text-muted mb-3 flex items-center justify-between rounded-2xl px-4 py-2 text-[11px]">
+            <span>{{ sortHintMap[sortBy] || sortHintMap.level }}</span>
+            <span class="leaderboard-hint-pill rounded-full px-2 py-0.5 text-[10px]">
+              离线显示快照
+            </span>
+          </div>
+
+          <div v-if="loading && leaderboardData.length === 0" class="glass-text-muted h-64 flex flex-col items-center justify-center">
             <div class="i-svg-spinners-90-ring-with-bg mb-4 text-4xl text-primary-500/50" />
             <p>正在加载风云榜...</p>
           </div>
 
-          <div v-else-if="leaderboardData.length === 0" class="h-64 flex flex-col items-center justify-center text-gray-400">
+          <div v-else-if="leaderboardData.length === 0" class="glass-text-muted h-64 flex flex-col items-center justify-center">
             <div class="i-carbon-list mb-4 text-6xl opacity-30" />
             <p>暂无账号排行数据</p>
           </div>
 
           <div v-else class="w-full">
             <!-- 表头 -->
-            <div class="sticky top-0 z-10 grid grid-cols-12 mb-2 gap-4 border-b border-white/10 bg-white/40 px-3 pb-3 pt-2 text-[11px] text-gray-400 font-bold tracking-wider uppercase backdrop-blur-xl dark:bg-gray-800/40 dark:text-gray-500">
+            <div class="leaderboard-head glass-text-muted sticky top-0 z-10 grid grid-cols-12 mb-2 gap-4 px-3 pb-3 pt-2 text-[11px] font-bold tracking-wider uppercase backdrop-blur-xl">
               <div class="col-span-1 text-center font-black">
                 #
               </div>
@@ -253,52 +355,70 @@ onMounted(() => {
 
                 <!-- 账号信息 -->
                 <div class="col-span-5 flex items-center gap-3 truncate">
-                  <div class="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10 ring-2 ring-transparent transition-all group-hover:ring-primary-500/30">
+                  <div class="leaderboard-avatar h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-transparent transition-all group-hover:ring-primary-500/30">
                     <img v-if="formatAvatar(item)" :src="formatAvatar(item) as string" class="h-full w-full object-cover">
-                    <div v-else class="i-carbon-user h-full w-full flex items-center justify-center bg-gray-100 text-gray-400 dark:bg-gray-800" />
+                    <div v-else class="leaderboard-avatar-fallback i-carbon-user h-full w-full flex items-center justify-center" />
                   </div>
                   <div class="truncate">
-                    <div class="flex items-center gap-2 truncate pr-2 text-gray-800 font-bold dark:text-gray-200">
+                    <div class="leaderboard-name flex items-center gap-2 truncate pr-2 font-bold">
                       {{ item.name || item.nick || item.id }}
                       <span
                         class="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                        :class="(item.platform || 'qq') === 'qq' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400' : 'bg-green-500/15 text-green-600 dark:text-green-400'"
+                        :class="getPlatformBadgeClass(item.platform)"
                       >
                         {{ getPlatformLabel(item.platform) }}
                       </span>
                     </div>
-                    <div class="truncate text-xs text-gray-500">
-                      {{ getUinLabel(item) }}
-                      <span v-if="item.level" class="ml-1 text-primary-500 opacity-80">
-                        Lv.{{ item.level }}
+                    <div class="glass-text-muted flex items-center gap-2 truncate text-xs">
+                      <span class="truncate">
+                        {{ getUinLabel(item) }}
+                      </span>
+                      <span
+                        class="inline-flex shrink-0 items-center border rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        :class="getLevelBadgeClass(item.level)"
+                      >
+                        {{ getLevelText(item) }}
+                      </span>
+                      <span v-if="!isAccountOnline(item) && hasSnapshot(item)" class="leaderboard-snapshot-pill inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px]">
+                        快照
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <!-- 金币 -->
-                <div class="col-span-2 truncate text-right text-amber-600 font-medium dark:text-amber-500">
-                  {{ item.running || item.connected ? formatNumber(item.gold) : '-' }}
+                <div
+                  class="col-span-2 truncate text-right font-medium"
+                  :class="getMetricTextClass(item, 'warning')"
+                >
+                  {{ formatMetricValue(item.gold, item) }}
                 </div>
 
                 <!-- 点券 -->
-                <div class="col-span-1 truncate text-right text-gray-600 dark:text-gray-300">
-                  {{ item.running || item.connected ? formatNumber(item.coupon) : '-' }}
+                <div
+                  class="col-span-1 truncate text-right"
+                  :class="getMetricTextClass(item, 'default')"
+                >
+                  {{ formatMetricValue(item.coupon, item) }}
                 </div>
 
                 <!-- 时长 -->
-                <div class="col-span-2 text-center text-sm text-gray-600 dark:text-gray-300">
-                  {{ formatUptime(item.uptime) }}
+                <div
+                  class="col-span-2 text-center text-sm"
+                  :class="getMetricTextClass(item, 'default')"
+                >
+                  {{ formatUptimeValue(item) }}
                 </div>
 
                 <!-- 状态 -->
                 <div class="col-span-1 flex justify-center">
                   <span
+                    :title="getStatusTitle(item)"
                     class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-bold leading-none"
-                    :class="isAccountOnline(item) ? 'bg-primary-500/10 text-primary-500 border border-primary-500/20' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500 border border-transparent'"
+                    :class="getStatusClass(item)"
                   >
-                    <span class="h-1.5 w-1.5 animate-pulse rounded-full" :class="isAccountOnline(item) ? 'bg-primary-500' : 'bg-gray-400'" />
-                    {{ isAccountOnline(item) ? '在线' : '离线' }}
+                    <span class="h-1.5 w-1.5 rounded-full" :class="[getStatusDotClass(item), { 'animate-pulse': isAccountOnline(item) }]" />
+                    {{ getStatusText(item) }}
                   </span>
                 </div>
               </div>
@@ -335,27 +455,160 @@ onMounted(() => {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--color-primary-500), 0.2);
+  background-color: color-mix(in srgb, var(--ui-brand-500) 20%, transparent);
   border-radius: 10px;
 }
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--color-primary-500), 0.4);
+  background-color: color-mix(in srgb, var(--ui-brand-500) 40%, transparent);
 }
 
 /* 奖牌样式定义 */
 .ranking-gold {
-  background: linear-gradient(135deg, #fcd34d 0%, #d97706 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ui-status-warning) 45%, var(--ui-text-on-brand) 55%) 0%,
+    var(--ui-status-warning) 100%
+  );
+  border: 1.5px solid color-mix(in srgb, var(--ui-text-on-brand) 40%, transparent);
 }
 .ranking-silver {
-  background: linear-gradient(135deg, #e5e7eb 0%, #6b7280 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ui-text-on-brand) 62%, var(--ui-text-3) 38%) 0%,
+    var(--ui-text-2) 100%
+  );
+  border: 1.5px solid color-mix(in srgb, var(--ui-text-on-brand) 40%, transparent);
 }
 .ranking-bronze {
-  background: linear-gradient(135deg, #fdba74 0%, #b45309 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ui-status-warning) 70%, var(--ui-text-on-brand) 30%) 0%,
+    color-mix(in srgb, var(--ui-status-warning) 88%, var(--ui-status-danger) 12%) 100%
+  );
+  border: 1.5px solid color-mix(in srgb, var(--ui-text-on-brand) 40%, transparent);
 }
 .ranking-normal {
-  border: 1px solid rgba(156, 163, 175, 0.1);
+  border: 1px solid color-mix(in srgb, var(--ui-border-subtle) 72%, transparent);
+}
+
+.leaderboard-modal {
+  color: var(--ui-text-1);
+}
+
+.leaderboard-backdrop {
+  background: var(--ui-overlay-backdrop) !important;
+}
+
+.leaderboard-panel,
+.leaderboard-header,
+.leaderboard-select,
+.leaderboard-close,
+.leaderboard-hint,
+.leaderboard-hint-pill,
+.leaderboard-head,
+.leaderboard-avatar,
+.leaderboard-avatar-fallback,
+.leaderboard-platform-badge,
+.leaderboard-level-badge,
+.leaderboard-snapshot-pill,
+.leaderboard-status {
+  border: 1px solid var(--ui-border-subtle) !important;
+}
+
+.leaderboard-panel {
+  border-radius: 1rem;
+}
+
+.leaderboard-header,
+.leaderboard-hint,
+.leaderboard-head,
+.leaderboard-avatar,
+.leaderboard-avatar-fallback,
+.leaderboard-close {
+  background: color-mix(in srgb, var(--ui-bg-surface) 68%, transparent) !important;
+}
+
+.leaderboard-name {
+  color: var(--ui-text-1) !important;
+}
+
+.leaderboard-ranking-medal {
+  color: var(--ui-text-on-brand) !important;
+}
+
+.leaderboard-select {
+  background: color-mix(in srgb, var(--ui-bg-surface-raised) 86%, transparent) !important;
+}
+
+.leaderboard-close:hover {
+  background: color-mix(in srgb, var(--ui-bg-surface-raised) 90%, transparent) !important;
+}
+
+.leaderboard-hint {
+  border-radius: 1rem;
+  background: var(--ui-brand-soft-05) !important;
+}
+
+.leaderboard-hint-pill,
+.leaderboard-level-badge-active,
+.leaderboard-status-online {
+  background: var(--ui-brand-soft-12) !important;
+  color: color-mix(in srgb, var(--ui-brand-700) 76%, var(--ui-text-1)) !important;
+}
+
+.leaderboard-ranking-normal,
+.leaderboard-level-badge-empty,
+.leaderboard-status-offline {
+  background: color-mix(in srgb, var(--ui-bg-surface-raised) 82%, transparent) !important;
+  color: var(--ui-text-2) !important;
+}
+
+.leaderboard-platform-badge-qq {
+  background: color-mix(in srgb, var(--ui-status-info) 10%, transparent) !important;
+  color: color-mix(in srgb, var(--ui-status-info) 78%, var(--ui-text-1)) !important;
+}
+
+.leaderboard-platform-badge-wx {
+  background: color-mix(in srgb, var(--ui-status-success) 10%, transparent) !important;
+  color: color-mix(in srgb, var(--ui-status-success) 78%, var(--ui-text-1)) !important;
+}
+
+.leaderboard-snapshot-pill,
+.leaderboard-status-snapshot,
+.leaderboard-status-dot-snapshot {
+  background: color-mix(in srgb, var(--ui-status-warning) 10%, transparent) !important;
+  color: color-mix(in srgb, var(--ui-status-warning) 80%, var(--ui-text-1)) !important;
+}
+
+.leaderboard-status {
+  border-radius: 999px;
+}
+
+.leaderboard-status-dot {
+  display: inline-flex;
+}
+
+.leaderboard-status-dot-online {
+  background: var(--ui-brand-500) !important;
+}
+
+.leaderboard-status-dot-offline {
+  background: color-mix(in srgb, var(--ui-text-2) 42%, transparent) !important;
+}
+
+.leaderboard-metric-online-warning {
+  color: color-mix(in srgb, var(--ui-status-warning) 80%, var(--ui-text-1)) !important;
+}
+
+.leaderboard-metric-snapshot-warning {
+  color: color-mix(in srgb, var(--ui-status-warning) 64%, var(--ui-text-1)) !important;
+}
+
+.leaderboard-metric-online {
+  color: var(--ui-text-1) !important;
+}
+
+.leaderboard-metric-snapshot {
+  color: var(--ui-text-2) !important;
 }
 </style>

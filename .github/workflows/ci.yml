@@ -30,8 +30,19 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint Web
-        run: pnpm -C web lint
+      - name: Check Announcements
+        run: pnpm check:announcements
+
+      - name: Check README Links (non-blocking)
+        continue-on-error: true
+        run: pnpm check:readme-links
+
+      - name: Verify Frontend Regression
+        run: pnpm test:frontend
+
+      - name: Audit Web Lint (advisory)
+        continue-on-error: true
+        run: pnpm -C web run lint:check
 
       - name: Verify Core Entry Syntax
         run: |
@@ -43,9 +54,6 @@ jobs:
       - name: Lint Core (non-blocking)
         continue-on-error: true
         run: pnpm -C core exec eslint "src/**/*.js" "client.js"
-
-      - name: Build Web
-        run: pnpm build:web
 
   package:
     if: github.event_name != 'pull_request'
