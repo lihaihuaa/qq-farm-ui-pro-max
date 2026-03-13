@@ -33,6 +33,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/smdk000/qq-farm-ui-pro-max/m
 
 - `repair-mysql.sh`：修复旧 MySQL 结构、补齐缺失表/列并回填历史数据
 - `repair-deploy.sh`：修复旧部署目录缺脚本、缺 `docker-compose.yml`、缺 `init-db`、缺 `/opt/qq-farm-current`（以及历史 `/opt/qq-farm-bot-current`）链接的问题
+- `safe-update.sh`：升级前先做部署目录备份、生成巡检报告，并强制携带数据库备份后再调用 `update-app.sh`
 
 脚本会自动：
 
@@ -82,6 +83,7 @@ mkdir -p init-db
 cp /path/to/deploy/init-db/01-init.sql init-db/
 cp /path/to/scripts/deploy/install-or-update.sh .
 cp /path/to/scripts/deploy/update-app.sh .
+cp /path/to/scripts/deploy/safe-update.sh .
 cp /path/to/scripts/deploy/update-agent.sh .
 cp /path/to/scripts/deploy/install-update-agent-service.sh .
 cp /path/to/scripts/deploy/manual-config-wizard.sh .
@@ -91,7 +93,7 @@ cp /path/to/scripts/deploy/stack-layout.sh .
 cp /path/to/scripts/deploy/verify-stack.sh .
 cp /path/to/scripts/deploy/fresh-install.sh .
 cp /path/to/scripts/deploy/quick-deploy.sh .
-chmod +x install-or-update.sh update-app.sh update-agent.sh install-update-agent-service.sh manual-config-wizard.sh repair-mysql.sh repair-deploy.sh stack-layout.sh verify-stack.sh fresh-install.sh quick-deploy.sh
+chmod +x install-or-update.sh update-app.sh safe-update.sh update-agent.sh install-update-agent-service.sh manual-config-wizard.sh repair-mysql.sh repair-deploy.sh stack-layout.sh verify-stack.sh fresh-install.sh quick-deploy.sh
 
 # 按需修改密码、端口、第三方扫码参数
 vi .env
@@ -118,6 +120,9 @@ bash install-or-update.sh --action update --preserve-current
 # 如需只更新主程序
 bash update-app.sh
 
+# 推荐：先做兜底备份和巡检，再升级
+bash safe-update.sh
+
 # 如需切到指定版本
 bash update-app.sh --image smdk000/qq-farm-bot-ui:4.5.20
 
@@ -131,6 +136,7 @@ bash repair-mysql.sh --backup
 说明：
 
 - `update-app.sh` 会先执行 `repair-mysql.sh`，再更新主程序镜像。
+- `safe-update.sh` 会先备份部署目录、生成升级前巡检报告，并要求 `repair-mysql.sh` 先做 SQL 备份，再交给 `update-app.sh` 执行升级。
 - `update-app.sh` 会同步更新部署目录里的 `docker-compose.yml`、`.env.example`、README 和修复脚本。
 - `install-or-update.sh --action update --preserve-current` 会在更新前先备份当前部署目录。
 - `update-app.sh` 会重新维护 `/opt/qq-farm-current` 链接，避免旧服软链接丢失。
@@ -203,6 +209,7 @@ qq-farm/
 ├── .env.example
 ├── install-or-update.sh
 ├── update-app.sh
+├── safe-update.sh
 ├── update-agent.sh
 ├── install-update-agent-service.sh
 ├── manual-config-wizard.sh

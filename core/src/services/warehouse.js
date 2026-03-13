@@ -10,6 +10,7 @@ const { sendMsgAsync, networkEvents, getUserState } = require('../utils/network'
 const { types } = require('../utils/proto');
 const { toLong, toNum, log, logWarn, sleep } = require('../utils/utils');
 const { getAccountBagPreferences, saveAccountBagPreferences } = require('./account-bag-preferences');
+const { isMysqlInitialized } = require('./mysql-db');
 const { updateStatusGold } = require('./status');
 
 const SELL_BATCH_SIZE = 15;
@@ -61,6 +62,7 @@ function buildPlantableSeedSnapshotHash(seeds = []) {
 async function persistPlantableSeedSnapshot(accountId, seeds = []) {
     const normalizedAccountId = String(accountId || '').trim();
     if (!normalizedAccountId) return;
+    if (!isMysqlInitialized()) return;
 
     const nextSeeds = Array.isArray(seeds) ? seeds : [];
     const nextHash = buildPlantableSeedSnapshotHash(nextSeeds);

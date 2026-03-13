@@ -100,6 +100,9 @@ copy_file_if_needed() {
     if [ "${source_path}" = "${target_path}" ]; then
         return 0
     fi
+    if [ -e "${source_path}" ] && [ -e "${target_path}" ] && [ "${source_path}" -ef "${target_path}" ]; then
+        return 0
+    fi
 
     cp "${source_path}" "${target_path}"
 }
@@ -196,6 +199,7 @@ sync_bundle() {
     local bundle_fresh=""
     local bundle_quick=""
     local bundle_install_or_update=""
+    local bundle_safe_update=""
     local bundle_update_agent=""
     local bundle_install_update_agent=""
     local bundle_manual_config_wizard=""
@@ -218,6 +222,7 @@ sync_bundle() {
         bundle_fresh="${SCRIPT_DIR}/fresh-install.sh"
         bundle_quick="${SCRIPT_DIR}/quick-deploy.sh"
         bundle_install_or_update="${SCRIPT_DIR}/install-or-update.sh"
+        bundle_safe_update="${SCRIPT_DIR}/safe-update.sh"
         bundle_update_agent="${SCRIPT_DIR}/update-agent.sh"
         bundle_install_update_agent="${SCRIPT_DIR}/install-update-agent-service.sh"
         bundle_manual_config_wizard="${SCRIPT_DIR}/manual-config-wizard.sh"
@@ -236,6 +241,7 @@ sync_bundle() {
         bundle_fresh="${bundle_dir}/fresh-install.sh"
         bundle_quick="${bundle_dir}/quick-deploy.sh"
         bundle_install_or_update="${bundle_dir}/install-or-update.sh"
+        bundle_safe_update="${bundle_dir}/safe-update.sh"
         bundle_update_agent="${bundle_dir}/update-agent.sh"
         bundle_install_update_agent="${bundle_dir}/install-update-agent-service.sh"
         bundle_manual_config_wizard="${bundle_dir}/manual-config-wizard.sh"
@@ -262,6 +268,11 @@ sync_bundle() {
             copy_file_if_needed "${bundle_install_or_update}" "${DEPLOY_DIR}/install-or-update.sh"
         else
             download_file "scripts/deploy/install-or-update.sh" "${DEPLOY_DIR}/install-or-update.sh"
+        fi
+        if [ -n "${bundle_safe_update}" ] && [ -f "${bundle_safe_update}" ]; then
+            copy_file_if_needed "${bundle_safe_update}" "${DEPLOY_DIR}/safe-update.sh"
+        else
+            download_file "scripts/deploy/safe-update.sh" "${DEPLOY_DIR}/safe-update.sh"
         fi
         if [ -n "${bundle_update_agent}" ] && [ -f "${bundle_update_agent}" ]; then
             copy_file_if_needed "${bundle_update_agent}" "${DEPLOY_DIR}/update-agent.sh"
@@ -304,6 +315,7 @@ sync_bundle() {
         download_file "scripts/deploy/fresh-install.sh" "${DEPLOY_DIR}/fresh-install.sh"
         download_file "scripts/deploy/quick-deploy.sh" "${DEPLOY_DIR}/quick-deploy.sh"
         download_file "scripts/deploy/install-or-update.sh" "${DEPLOY_DIR}/install-or-update.sh"
+        download_file "scripts/deploy/safe-update.sh" "${DEPLOY_DIR}/safe-update.sh"
         download_file "scripts/deploy/update-agent.sh" "${DEPLOY_DIR}/update-agent.sh"
         download_file "scripts/deploy/install-update-agent-service.sh" "${DEPLOY_DIR}/install-update-agent-service.sh"
         download_file "scripts/deploy/manual-config-wizard.sh" "${DEPLOY_DIR}/manual-config-wizard.sh"
@@ -321,6 +333,7 @@ sync_bundle() {
         "${DEPLOY_DIR}/update-agent.sh" \
         "${DEPLOY_DIR}/install-update-agent-service.sh" \
         "${DEPLOY_DIR}/install-or-update.sh" \
+        "${DEPLOY_DIR}/safe-update.sh" \
         "${DEPLOY_DIR}/manual-config-wizard.sh" \
         "${DEPLOY_DIR}/stack-layout.sh" \
         "${DEPLOY_DIR}/repair-mysql.sh" \
@@ -360,6 +373,7 @@ main() {
     fi
     echo "主程序更新命令: ${DEPLOY_DIR}/update-app.sh"
     echo "统一安装/更新入口: ${DEPLOY_DIR}/install-or-update.sh"
+    echo "安全升级命令: ${DEPLOY_DIR}/safe-update.sh"
     echo "手动修复向导: ${DEPLOY_DIR}/manual-config-wizard.sh"
     echo "安装后核验脚本: ${DEPLOY_DIR}/verify-stack.sh"
     echo "后台更新代理: ${DEPLOY_DIR}/update-agent.sh --once"

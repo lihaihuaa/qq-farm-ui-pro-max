@@ -11,6 +11,7 @@ const { toNum, log, logWarn, sleep } = require('../utils/utils');
 const { getMonthCardInfos, claimMonthCardReward } = require('./monthcard');
 const { getBag, getBagItems, getContainerHoursFromBagItems } = require('./warehouse');
 const { getAccountBagPreferences, saveAccountBagPreferences } = require('./account-bag-preferences');
+const { isMysqlInitialized } = require('./mysql-db');
 
 const ORGANIC_FERTILIZER_MALL_GOODS_ID = 1002;
 const NORMAL_FERTILIZER_MALL_GOODS_ID = 1003;
@@ -604,6 +605,7 @@ function resolvePreferredFertilizerMallGoods(goodsList, type, resolverCache = {}
 async function persistMallResolverCache(accountId, currentPreferences, nextCache) {
     const normalizedAccountId = String(accountId || '').trim();
     if (!normalizedAccountId) return;
+    if (!isMysqlInitialized()) return;
     const current = (currentPreferences && typeof currentPreferences === 'object') ? currentPreferences : {};
     if (getMallResolverCacheHash(current.mallResolverCache) === getMallResolverCacheHash(nextCache)) {
         return;

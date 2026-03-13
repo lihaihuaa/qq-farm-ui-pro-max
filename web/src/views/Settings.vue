@@ -24,7 +24,7 @@ import { createDefaultTradeConfig, normalizeTradeConfig, normalizeTradeKeepFruit
 import { DEFAULT_REPORT_HISTORY_VIEW_STATE, normalizeReportHistoryViewState } from '@/utils/view-preferences'
 
 const REPORT_HISTORY_VIEW_STORAGE_KEY = 'qq-farm-bot:report-history-view:v1'
-const REPORT_HISTORY_BROWSER_PREF_NOTE = '这里的筛选类型、筛选结果、每页条数、关键字和排序方式会跟随当前登录用户同步到服务器；本机缓存只作首屏兜底。汇报记录本身仍来自数据库。'
+const REPORT_HISTORY_BROWSER_PREF_NOTE = '这里的筛选类型、筛选结果、关键字和排序方式会跟随当前登录用户同步到服务器；列表固定每页 3 条，超过后自动翻页。汇报记录本身仍来自数据库。'
 
 interface WebAssetsHealthSnapshot {
   activeDir: string
@@ -120,7 +120,7 @@ function loadReportHistoryViewPreferences(): typeof DEFAULT_REPORT_HISTORY_VIEW_
   const modeOptions = ['all', 'test', 'hourly', 'daily'] as const
   const statusOptions = ['all', 'success', 'failed'] as const
   const sortOrderOptions = ['asc', 'desc'] as const
-  const pageSizeOptions = [10, 20, 50, 100] as const
+  const pageSizeOptions = [3] as const
   try {
     const raw = localStorage.getItem(REPORT_HISTORY_VIEW_STORAGE_KEY)
     if (!raw)
@@ -1769,13 +1769,6 @@ const reportSortOrderOptions = [
   { label: '最早优先', value: 'asc' },
 ]
 
-const reportPageSizeOptions = [
-  { label: '10 条/页', value: 10 },
-  { label: '20 条/页', value: 20 },
-  { label: '50 条/页', value: 50 },
-  { label: '100 条/页', value: 100 },
-]
-
 const defaultInventoryPlanting = {
   mode: 'disabled' as 'disabled' | 'prefer_inventory' | 'inventory_only',
   globalKeepCount: 0,
@@ -2086,7 +2079,7 @@ async function loadData() {
     seeds.value = []
     bagSeeds.value = []
     reportLogs.value = []
-    reportLogPagination.value = { page: 1, pageSize: reportPageSize.value || 10, total: 0, totalPages: 1 }
+    reportLogPagination.value = { page: 1, pageSize: reportPageSize.value || 3, total: 0, totalPages: 1 }
     await settingStore.fetchReportLogStats('')
   }
   // 管理员加载体验卡配置
@@ -3104,7 +3097,7 @@ async function refreshReportLogs(options: { page?: number, pageSize?: number, re
   try {
     const targetPage = options.resetPage ? 1 : (options.page || reportLogPagination.value.page || 1)
     const targetPageSize: typeof DEFAULT_REPORT_HISTORY_VIEW_STATE.pageSize = normalizeReportHistoryPageSize(
-      options.pageSize || reportPageSize.value || 10,
+      options.pageSize || reportPageSize.value || 3,
     )
     const requestOptions = {
       mode: reportFilters.value.mode,
@@ -3120,7 +3113,7 @@ async function refreshReportLogs(options: { page?: number, pageSize?: number, re
       }),
       settingStore.fetchReportLogStats(currentAccountId.value, requestOptions),
     ])
-    reportPageSize.value = normalizeReportHistoryPageSize(reportLogPagination.value.pageSize || reportPageSize.value || 10)
+    reportPageSize.value = normalizeReportHistoryPageSize(reportLogPagination.value.pageSize || reportPageSize.value || 3)
   }
   finally {
     reportHistoryLoading.value = false
@@ -3209,7 +3202,7 @@ async function handleResetReportHistoryView() {
   reportFilters.value = { mode: 'all', status: 'all' }
   reportKeyword.value = ''
   reportSortOrder.value = 'desc'
-  reportPageSize.value = 10
+  reportPageSize.value = 3
   await handleApplyReportSearch()
 }
 
@@ -3399,7 +3392,7 @@ watch(() => reportPageSize.value, (pageSize, prevPageSize) => {
     return
   if (pageSize === prevPageSize)
     return
-  void refreshReportLogs({ resetPage: true, pageSize: pageSize || 10 })
+  void refreshReportLogs({ resetPage: true, pageSize: pageSize || 3 })
 })
 
 watch(() => reportLogs.value.map(item => item.id).join(','), () => {
@@ -4548,7 +4541,7 @@ async function restoreTimingDefaults() {
               class="settings-footer-button"
               @click="handleSaveOffline"
             >
-              仅保存全局下线提醒
+              只保存下线提醒（不保存账号设置）
             </BaseButton>
           </div>
         </template>
@@ -4605,7 +4598,7 @@ async function restoreTimingDefaults() {
                 <BaseSwitch
                   v-model="localSettings.reportConfig.enabled"
                   label="启用经营汇报"
-                  hint="按设定周期向当前账号的专属渠道发送经营摘要。这里的设置只影响当前账号，不会改动上方的全局下线提醒。"
+                  hint="按设定周期向当前账号的专属渠道发送经营摘要。这里的设置只影响当前账号，不会改动上方的全局下线提醒；改完后要点“保存当前账号设置”才会真正持久化。"
                   recommend="conditional"
                 />
 
@@ -4674,7 +4667,7 @@ async function restoreTimingDefaults() {
                       v-model="localSettings.reportConfig.smtpUser"
                       label="SMTP 用户名"
                       type="text"
-                      placeholder="通常为邮箱账号"
+                      placeholder="通常填完整邮箱，如 123456@qq.com"
                     />
                     <BaseInput
                       v-model="localSettings.reportConfig.smtpPass"
@@ -4689,7 +4682,7 @@ async function restoreTimingDefaults() {
                       v-model="localSettings.reportConfig.emailFrom"
                       label="发件邮箱"
                       type="text"
-                      placeholder="可留空，默认取 SMTP 用户名"
+                      placeholder="只填纯邮箱地址；留空则默认取 SMTP 用户名"
                     />
                     <BaseInput
                       v-model="localSettings.reportConfig.emailTo"
@@ -4697,6 +4690,10 @@ async function restoreTimingDefaults() {
                       type="text"
                       placeholder="支持多个，逗号分隔"
                     />
+                  </div>
+
+                  <div class="settings-report-meta text-xs leading-5">
+                    QQ 邮箱建议使用 <code>smtp.qq.com</code> + <code>465</code> 并开启“直连 TLS”；SMTP 用户名和发件邮箱都尽量填写完整邮箱地址，不要写成“昵称 &lt;邮箱&gt;”。
                   </div>
 
                   <BaseSwitch
@@ -4826,7 +4823,7 @@ async function restoreTimingDefaults() {
                     {{ REPORT_HISTORY_BROWSER_PREF_NOTE }}
                   </div>
 
-                  <div class="grid grid-cols-1 mb-3 gap-3 md:grid-cols-4">
+                  <div class="grid grid-cols-1 mb-3 gap-3 md:grid-cols-3">
                     <BaseSelect
                       v-model="reportFilters.mode"
                       label="筛选类型"
@@ -4836,11 +4833,6 @@ async function restoreTimingDefaults() {
                       v-model="reportFilters.status"
                       label="筛选结果"
                       :options="reportStatusOptions"
-                    />
-                    <BaseSelect
-                      v-model="reportPageSize"
-                      label="每页条数"
-                      :options="reportPageSizeOptions"
                     />
                     <BaseInput
                       v-model="reportKeyword"
@@ -4855,6 +4847,8 @@ async function restoreTimingDefaults() {
                     <div class="settings-report-meta text-xs">
                       <span v-if="reportKeyword.trim()">当前关键字：{{ reportKeyword.trim() }}</span>
                       <span v-else>未启用关键字搜索</span>
+                      <span class="mx-2">·</span>
+                      <span>固定 3 条/页</span>
                     </div>
                     <div class="flex flex-wrap gap-2">
                       <BaseButton

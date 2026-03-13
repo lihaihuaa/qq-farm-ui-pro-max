@@ -113,6 +113,9 @@ cd /opt/qq-farm-current
 # 如需只更新主程序
 ./update-app.sh --image-archive /path/to/qq-farm-bot-images-amd64.tar.gz
 
+# 推荐：先做兜底备份和巡检，再升级
+./safe-update.sh --image-archive /path/to/qq-farm-bot-images-amd64.tar.gz
+
 # 如果只想先补旧数据库结构
 ./repair-mysql.sh --backup
 ```
@@ -137,12 +140,13 @@ chmod +x repair-deploy.sh
 ./install-or-update.sh --action update --preserve-current --non-interactive
 ```
 
-如果服务器不能访问 GitHub，就把本地生成的部署包中的 `repair-deploy.sh`、`update-app.sh`、`repair-mysql.sh` 一并传上去执行。
+如果服务器不能访问 GitHub，就把本地生成的部署包中的 `repair-deploy.sh`、`update-app.sh`、`safe-update.sh`、`repair-mysql.sh` 一并传上去执行。
 
 补充说明：
 
 - 从 `v4.5.20` 开始，部署目录会额外提供统一安装/更新/核验脚本，并继续保留 `repair-deploy.sh` 用于补齐旧部署目录缺失的脚本、编排文件、初始化 SQL 和 current 链接。
 - `repair-deploy.sh` 只修部署包本身；需要修数据库结构时，用 `repair-mysql.sh`。
+- `safe-update.sh` 会在正式升级前先做部署目录备份、输出巡检报告，并要求 `repair-mysql.sh` 先备份数据库，再调用 `update-app.sh`。
 - 所以旧服务器要彻底消除“添加账号后切换/刷新消失”、体验卡异常，以及卡密管理结构缺失问题，关键是修完部署包后再把主程序镜像升级到 `v4.5.20+`。
 - 从这次开始，`fresh-install.sh` / `update-app.sh` 会先做主程序镜像架构预检，避免把 `arm64` 镜像误导入到 `amd64` 服务器。
 - 主程序镜像会按 `APP_IMAGE -> Docker Hub -> GHCR -> 本地缓存 -> 源码构建` 顺序回退；离线包里如果主程序镜像来自 GHCR，脚本也会自动识别并写回 `.env`。

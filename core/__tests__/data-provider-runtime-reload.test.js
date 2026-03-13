@@ -90,3 +90,39 @@ test('reloadRuntimeModule forwards target and options to worker api', async () =
     ]);
     assert.deepEqual(result, { ok: true });
 });
+
+test('syncSystemTimingConfig bumps revision and broadcasts to all workers', async () => {
+    const broadcastCalls = [];
+    let revision = 0;
+    const provider = createDataProvider({
+        workers: { 'acc-1': { process: {}, status: {}, logs: [] } },
+        globalLogs: [],
+        accountLogs: [],
+        store: {
+            getConfigSnapshot: () => ({}),
+            resolveAccountZone: () => 'qq_zone',
+        },
+        accountRepository: null,
+        getAccounts: async () => ({ accounts: [{ id: 'acc-1', name: '账号1' }] }),
+        callWorkerApi: async () => ({}),
+        buildDefaultStatus: () => ({}),
+        normalizeStatusForPanel: status => status,
+        filterLogs: logs => logs,
+        addAccountLog: () => {},
+        nextConfigRevision: () => {
+            revision += 1;
+            return revision;
+        },
+        broadcastConfigToWorkers: (accountId) => {
+            broadcastCalls.push(accountId);
+        },
+        startWorker: async () => true,
+        stopWorker: async () => true,
+        restartWorker: async () => true,
+    });
+
+    const result = await provider.syncSystemTimingConfig();
+
+    assert.deepEqual(result, { configRevision: 1 });
+    assert.deepEqual(broadcastCalls, [undefined]);
+});

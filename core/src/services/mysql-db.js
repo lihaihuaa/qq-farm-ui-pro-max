@@ -315,7 +315,12 @@ async function initMysql() {
             if (fkRows.length === 0) {
                 logger.info('检测到 accounts 表缺少 username 外键约束，正在添加...');
                 try {
-                    await pool.query(`DELETE FROM accounts WHERE username IS NOT NULL AND username NOT IN (SELECT username FROM users)`);
+                    await pool.query(`
+                        UPDATE accounts
+                        SET username = NULL
+                        WHERE username IS NOT NULL
+                          AND (TRIM(username) = '' OR username NOT IN (SELECT username FROM users))
+                    `);
                     await pool.query(`ALTER TABLE accounts ADD CONSTRAINT fk_accounts_username FOREIGN KEY (username) REFERENCES users(username) ON DELETE SET NULL ON UPDATE CASCADE`);
                     logger.info('✅ accounts.username 外键约束添加完成');
                 } catch (fkErr) {

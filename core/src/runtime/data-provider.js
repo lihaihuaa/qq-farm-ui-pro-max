@@ -193,6 +193,14 @@ function createDataProvider(options) {
         getReloadableRuntimeModules: async (accountRef) => callWorkerApi(await resolveAccountRefId(accountRef), 'getReloadableRuntimeModules'),
         getRuntimeReloadHistory: async (accountRef) => callWorkerApi(await resolveAccountRefId(accountRef), 'getRuntimeReloadHistory'),
 
+        syncSystemTimingConfig: async () => {
+            const rev = nextConfigRevision();
+            if (typeof broadcastConfigToWorkers === 'function') {
+                broadcastConfigToWorkers();
+            }
+            return { configRevision: rev };
+        },
+
         setAutomation: async (accountRef, key, value) => {
             const accountId = await resolveAccountRefId(accountRef);
             if (!accountId) {

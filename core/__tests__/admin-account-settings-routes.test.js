@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { registerAccountSettingsRoutes } = require('../src/controllers/admin/account-settings-routes');
+const SETTINGS_PATH_COVERAGE_TOKENS = ['harvestDelay.min', 'harvestDelay.max', 'friendQuietHours.end'];
 
 function createFakeApp() {
     const routes = { get: new Map(), post: new Map() };
@@ -102,15 +103,46 @@ test('settings save route keeps ownership middleware and writes coerced settings
     const res = createResponse();
     await handler(
         {
-            body: { accountMode: 'main', intervals: { farm: 30 } },
+            body: {
+                accountMode: 'main',
+                harvestDelay: { min: 1, max: 3 },
+                friendQuietHours: { enabled: true, start: '23:00', end: '07:00' },
+                intervals: { farm: 30 },
+                automation: {
+                    fertilizer_gift: true,
+                    free_gifts: true,
+                    friend_bad: false,
+                    friend_steal: true,
+                    land_upgrade: true,
+                    landUpgradeTarget: 6,
+                    share_reward: true,
+                    vip_gift: true,
+                },
+            },
             currentUser: { username: 'admin', role: 'admin' },
         },
         res,
     );
 
     assert.equal(res.statusCode, 200);
+    assert.deepEqual(SETTINGS_PATH_COVERAGE_TOKENS, ['harvestDelay.min', 'harvestDelay.max', 'friendQuietHours.end']);
     assert.deepEqual(calls, [
-        ['validate', { accountMode: 'main', intervals: { farm: 30 } }],
+        ['validate', {
+            accountMode: 'main',
+            harvestDelay: { min: 1, max: 3 },
+            friendQuietHours: { enabled: true, start: '23:00', end: '07:00' },
+            intervals: { farm: 30 },
+            automation: {
+                fertilizer_gift: true,
+                free_gifts: true,
+                friend_bad: false,
+                friend_steal: true,
+                land_upgrade: true,
+                landUpgradeTarget: 6,
+                share_reward: true,
+                vip_gift: true,
+            },
+        }],
         ['acc-1', { normalized: true, source: { farm: 30 } }],
     ]);
     assert.deepEqual(res.body, { ok: true, data: { saved: true, accountId: 'acc-1' } });
@@ -285,6 +317,8 @@ test('settings get route keeps ownership middleware and returns merged automatio
             plantingFallbackStrategy: 'level',
             preferredSeed: 'seed-9',
             preferredSeedId: 'seed-9',
+            bagSeedPriority: [],
+            bagSeedFallbackStrategy: 'level',
             inventoryPlanting: { mode: 'disabled', globalKeepCount: 0, reserveRules: [] },
             friendQuietHours: { enabled: true, start: 1, end: 7 },
             automation: {

@@ -7,7 +7,7 @@ const { getDataFile } = require('../config/runtime-paths');
 const { getPool, transaction, isMysqlInitialized } = require('../services/mysql-db');
 const { createModuleLogger } = require('../services/logger');
 const { getSystemSettings, setSystemSettings, SYSTEM_SETTING_KEYS } = require('../services/system-settings');
-const { readJsonFile } = require('../services/json-db');
+const { readJsonFile, writeJsonFileAtomic } = require('../services/json-db');
 const { DEFAULT_UI_CONFIG, normalizeUIConfig } = require('../utils/ui-config');
 
 const STORE_FILE = getDataFile('store.json');
@@ -1009,6 +1009,18 @@ function buildSystemGlobalConfigSnapshot() {
     };
 }
 
+function buildLegacyStoreFileSnapshot() {
+    const systemSnapshot = buildSystemGlobalConfigSnapshot();
+    return {
+        ...systemSnapshot,
+        accountConfigs: Object.fromEntries(
+            Object.entries(globalConfig.accountConfigs || {})
+                .map(([id, cfg]) => [String(id || '').trim(), cloneAccountConfig(cfg)])
+                .filter(([id]) => id),
+        ),
+    };
+}
+
 function ensureGlobalConfigFileLoaded() {
     if (_globalConfigFileLoaded) {
         return false;
@@ -1191,6 +1203,7 @@ async function saveGlobalConfigImmediate() {
                     [GLOBAL_CONFIG_SYSTEM_SETTING_KEY]: buildSystemGlobalConfigSnapshot(),
                 }, { conn });
             });
+            writeJsonFileAtomic(STORE_FILE, buildLegacyStoreFileSnapshot());
         }
     })();
     try {
@@ -1283,6 +1296,13 @@ function applyConfigSnapshot(snapshot, options = {}) {
     const current = getAccountConfigSnapshot(accountId);
     const next = normalizeAccountConfig(current, accountFallbackConfig);
     const hasAccountModeUpdate = cfg.accountMode !== undefined;
+
+    if (cfg.timingConfig && typeof cfg.timingConfig === 'object') {
+        globalConfig.timingConfig = normalizeTimingConfig(
+            cfg.timingConfig,
+            globalConfig.timingConfig || DEFAULT_TIMING_CONFIG,
+        );
+    }
 
     if (hasAccountModeUpdate) {
         next.accountMode = normalizeAccountMode(cfg.accountMode, next.accountMode);
@@ -2066,6 +2086,7 @@ async function persistPendingAccounts(options = {}) {
             ...acc,
             ...identity,
         }));
+        const normalizedUsername = String(acc.username || '').trim() || null;
 
         try {
             await pool.query(
@@ -2078,7 +2099,7 @@ async function persistPendingAccounts(options = {}) {
                     platform,
                     acc.running ? 1 : 0,
                     identity.code,
-                    acc.username || '',
+                    normalizedUsername,
                     acc.avatar || '',
                     lastLoginAt ? new Date(lastLoginAt) : null,
                     authData,

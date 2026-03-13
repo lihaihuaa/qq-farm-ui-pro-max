@@ -2,6 +2,10 @@ const crypto = require('node:crypto');
 const { createModuleLogger } = require('./logger');
 const { createScheduler } = require('./scheduler');
 const { insertReportLog, pruneReportLogs } = require('./database');
+const {
+    renderReportEmailHtml,
+    renderRestartReminderEmailHtml,
+} = require('./report-email-template');
 
 const logger = createModuleLogger('report-service');
 const REPORT_SCAN_INTERVAL_MS = 60 * 1000;
@@ -191,7 +195,20 @@ function summarizeLandsData(landsData) {
     const soonToMature = countCollection(summary.soonToMature);
     const upgradable = countCollection(summary.upgradable);
     const unlockable = countCollection(summary.unlockable);
-    return `农场概况: 土地${total} / 可收${harvestable} / 生长${growing} / 空地${empty} / 需水${needWater} / 草${needWeed} / 虫${needBug} / 即将成熟${soonToMature} / 可升级${upgradable} / 可解锁${unlockable}`;
+    return {
+        line: `农场概况: 土地${total} / 可收${harvestable} / 生长${growing} / 空地${empty} / 需水${needWater} / 草${needWeed} / 虫${needBug} / 即将成熟${soonToMature} / 可升级${upgradable} / 可解锁${unlockable}`,
+        metrics: [
+            { label: '土地', value: total, background: '#eef8e9', valueColor: '#5ca62f' },
+            { label: '可收', value: harvestable, background: '#fff4dd', valueColor: '#b87c09' },
+            { label: '生长', value: growing, background: '#eaf8fb', valueColor: '#1d8fa7' },
+            { label: '空地', value: empty, background: '#f4f6fa', valueColor: '#6d7d8f' },
+            { label: '需水', value: needWater, background: '#edf4ff', valueColor: '#4b77d4' },
+            { label: '草', value: needWeed, background: '#f7f0e6', valueColor: '#a56c1c' },
+            { label: '虫', value: needBug, background: '#fff0ea', valueColor: '#d56a46' },
+            { label: '将成熟', value: soonToMature, background: '#f6efff', valueColor: '#855ad0' },
+            { label: '可升级', value: upgradable + unlockable, background: '#eef3ff', valueColor: '#5865d6', note: unlockable > 0 ? `解锁 ${unlockable}` : '含可解锁土地' },
+        ],
+    };
 }
 
 function summarizeBagData(bagData) {
@@ -199,7 +216,13 @@ function summarizeBagData(bagData) {
     const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
     const totalKinds = Math.max(0, Math.floor(toNumber(data.totalKinds))) || items.length;
     const totalCount = items.reduce((sum, item) => sum + Math.max(0, Math.floor(toNumber(item && item.count))), 0);
-    return `背包概况: 物品种类${totalKinds} / 物品总数${totalCount}`;
+    return {
+        line: `背包概况: 物品种类${totalKinds} / 物品总数${totalCount}`,
+        metrics: [
+            { label: '物品种类', value: totalKinds, background: '#eef8ff', valueColor: '#2f80d4' },
+            { label: '物品总数', value: totalCount, background: '#fff4dd', valueColor: '#b87c09' },
+        ],
+    };
 }
 
 function summarizeFriendsData(friendsData) {
@@ -211,7 +234,14 @@ function summarizeFriendsData(friendsData) {
         .filter(Boolean)
         .slice(0, 3);
     const sampleText = sampleNames.length > 0 ? ` / 示例: ${sampleNames.join('、')}` : '';
-    return `好友概况: 有效好友${list.length}${sampleText}`;
+    return {
+        line: `好友概况: 有效好友${list.length}${sampleText}`,
+        sampleNames,
+        metrics: [
+            { label: '有效好友', value: list.length, background: '#ecfbf1', valueColor: '#2d9d64' },
+            { label: '示例账号', value: sampleNames.length, background: '#eef2ff', valueColor: '#5865d6', note: sampleNames.length > 0 ? sampleNames.join('、') : '暂无样本' },
+        ],
+    };
 }
 
 async function collectLiveDetails(accountId, runtimeStatus, dataProvider) {
@@ -220,6 +250,9 @@ async function collectLiveDetails(accountId, runtimeStatus, dataProvider) {
         farmLine: '',
         bagLine: '',
         friendLine: '',
+        farm: null,
+        bag: null,
+        friends: null,
         notes: [],
     };
 
@@ -236,19 +269,22 @@ async function collectLiveDetails(accountId, runtimeStatus, dataProvider) {
     const [landsRes, bagRes, friendsRes] = await Promise.allSettled(tasks);
 
     if (landsRes.status === 'fulfilled') {
-        details.farmLine = summarizeLandsData(landsRes.value);
+        details.farm = summarizeLandsData(landsRes.value);
+        details.farmLine = details.farm.line;
     } else {
         details.notes.push(`农场详情采集失败: ${landsRes.reason && landsRes.reason.message ? landsRes.reason.message : '未知原因'}`);
     }
 
     if (bagRes.status === 'fulfilled') {
-        details.bagLine = summarizeBagData(bagRes.value);
+        details.bag = summarizeBagData(bagRes.value);
+        details.bagLine = details.bag.line;
     } else {
         details.notes.push(`背包详情采集失败: ${bagRes.reason && bagRes.reason.message ? bagRes.reason.message : '未知原因'}`);
     }
 
     if (friendsRes.status === 'fulfilled') {
-        details.friendLine = summarizeFriendsData(friendsRes.value);
+        details.friends = summarizeFriendsData(friendsRes.value);
+        details.friendLine = details.friends.line;
     } else {
         details.notes.push(`好友详情采集失败: ${friendsRes.reason && friendsRes.reason.message ? friendsRes.reason.message : '未知原因'}`);
     }
@@ -284,6 +320,27 @@ function buildReportPayload(mode, account, runtimeStatus, diff, cfg, notes = [],
     return {
         title: `${String(cfg.title || '经营汇报').trim()} · ${getReportHeadline(mode)} · ${accountName}`,
         content: lines.join('\n'),
+        html: renderReportEmailHtml({
+            reportTitle: String(cfg.title || '经营汇报').trim() || '经营汇报',
+            headline: getReportHeadline(mode),
+            windowLabel: window.label,
+            sentAt: formatDateTime(now),
+            accountName,
+            accountId: runtimeStatus.accountId || account.id || '',
+            platform,
+            connected: !!connection.connected,
+            diff,
+            operationSummary,
+            panel: {
+                level: Math.max(0, Math.floor(toNumber(status.level))),
+                gold: Math.max(0, Math.floor(toNumber(status.gold))),
+                exp: Math.max(0, Math.floor(toNumber(status.exp))),
+            },
+            farm: liveDetails.farm,
+            bag: liveDetails.bag,
+            friends: liveDetails.friends,
+            notes,
+        }),
         slot: window.slot,
     };
 }
@@ -318,6 +375,12 @@ function buildRestartReminderPayload(cfg = {}, groupedAccounts = []) {
     return {
         title: `${String(cfg.title || '经营汇报').trim()} · 服务器重启提醒`,
         content: lines.join('\n'),
+        html: renderRestartReminderEmailHtml({
+            reportTitle: String(cfg.title || '经营汇报').trim() || '经营汇报',
+            restoredAt: formatDateTime(now),
+            accountLine,
+            accountNames,
+        }),
     };
 }
 
@@ -500,6 +563,7 @@ function createReportService(options = {}) {
             emailTo: reportConfig.emailTo,
             title: payload.title,
             content: payload.content,
+            html: payload.html,
         });
 
         try {
@@ -596,6 +660,7 @@ function createReportService(options = {}) {
                 emailTo: cfg.emailTo,
                 title: payload.title,
                 content: payload.content,
+                html: payload.html,
             });
         } catch (error) {
             delivery = {

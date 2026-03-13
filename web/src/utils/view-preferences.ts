@@ -66,7 +66,7 @@ export interface ReportHistoryViewState {
   status: 'all' | 'success' | 'failed'
   keyword: string
   sortOrder: 'asc' | 'desc'
-  pageSize: 10 | 20 | 50 | 100
+  pageSize: 3
 }
 
 export interface ViewPreferencesPayload {
@@ -95,7 +95,7 @@ const ANALYTICS_SORT_KEY_OPTIONS = new Set(['exp', 'fert', 'profit', 'fert_profi
 const REPORT_HISTORY_MODE_OPTIONS = new Set(['all', 'test', 'hourly', 'daily'])
 const REPORT_HISTORY_STATUS_OPTIONS = new Set(['all', 'success', 'failed'])
 const SORT_ORDER_OPTIONS = new Set(['asc', 'desc'])
-const REPORT_PAGE_SIZE_OPTIONS = new Set([10, 20, 50, 100])
+const REPORT_PAGE_SIZE_OPTIONS = new Set([3])
 const ACTION_HISTORY_STATUS_OPTIONS = new Set(['success', 'warning', 'error'])
 const ACTION_HISTORY_LIMIT = 8
 const ACTION_HISTORY_NAME_LIMIT = 6
@@ -156,7 +156,7 @@ export const DEFAULT_REPORT_HISTORY_VIEW_STATE: ReportHistoryViewState = {
   status: 'all',
   keyword: '',
   sortOrder: 'desc',
-  pageSize: 10,
+  pageSize: 3,
 }
 
 function clampPositiveInteger(value: unknown, fallback: number) {

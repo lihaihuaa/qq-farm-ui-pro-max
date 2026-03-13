@@ -43,6 +43,7 @@ function createRuntimeState(options) {
 
         return {
             ...baseSnapshot,
+            timingConfig: typeof store.getTimingConfig === 'function' ? store.getTimingConfig() : {},
             automation: store.getAutomation(accountId),
             plantingStrategy: store.getPlantingStrategy(accountId),
             preferredSeedId: store.getPreferredSeed(accountId),

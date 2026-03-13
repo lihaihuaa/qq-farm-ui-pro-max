@@ -57,7 +57,7 @@ const DEFAULT_REPORT_HISTORY_VIEW_STATE = Object.freeze({
     status: 'all',
     keyword: '',
     sortOrder: 'desc',
-    pageSize: 10,
+    pageSize: 3,
 });
 
 const DEFAULT_ANNOUNCEMENT_DISMISSED_ID = '';
@@ -115,7 +115,7 @@ function normalizeSystemLogPageSize(value, fallback = DEFAULT_SYSTEM_LOGS_VIEW_S
 
 function normalizeReportPageSize(value, fallback = DEFAULT_REPORT_HISTORY_VIEW_STATE.pageSize) {
     const next = clampInteger(value, fallback, 1, 1000);
-    return new Set([10, 20, 50, 100]).has(next) ? next : fallback;
+    return new Set([3]).has(next) ? next : fallback;
 }
 
 function normalizeCardsViewState(input = {}, fallback = DEFAULT_CARDS_VIEW_STATE) {

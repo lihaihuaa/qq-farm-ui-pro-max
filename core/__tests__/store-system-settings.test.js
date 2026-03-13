@@ -131,9 +131,17 @@ test('global settings persist to system_settings and reload from MySQL without s
             adminRenewEnabled: false,
             userRenewEnabled: true,
         });
-        assert.equal(fs.existsSync(path.join(tempRoot, 'data', 'store.json')), false);
-
         const storeFile = path.join(tempRoot, 'data', 'store.json');
+        assert.equal(fs.existsSync(storeFile), true);
+        assert.deepEqual(JSON.parse(fs.readFileSync(storeFile, 'utf8')).trialCardConfig, {
+            enabled: false,
+            dailyLimit: 88,
+            cooldownMs: 6 * 60 * 60 * 1000,
+            days: 30,
+            maxAccounts: 5,
+            adminRenewEnabled: false,
+            userRenewEnabled: true,
+        });
         fs.rmSync(storeFile, { force: true });
 
         delete require.cache[storeModulePath];
@@ -151,6 +159,113 @@ test('global settings persist to system_settings and reload from MySQL without s
             adminRenewEnabled: false,
             userRenewEnabled: true,
         });
+    } finally {
+        delete require.cache[storeModulePath];
+        delete require.cache[systemSettingsModulePath];
+        restoreRuntimePaths();
+        restoreMysql();
+        fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+});
+
+test('account settings are mirrored to store.json and can recover before db refresh', async () => {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'store-account-mirror-'));
+    const restoreRuntimePaths = mockModule(runtimePathsModulePath, createRuntimePathsMock(tempRoot));
+    const mysqlMock = createMysqlMock();
+    const restoreMysql = mockModule(mysqlDbModulePath, mysqlMock);
+
+    try {
+        delete require.cache[storeModulePath];
+        delete require.cache[systemSettingsModulePath];
+
+        let store = require(storeModulePath);
+
+        store.applyConfigSnapshot({
+            intervals: {
+                farmMin: 45,
+                farmMax: 90,
+                friendMin: 120,
+                friendMax: 240,
+            },
+            reportConfig: {
+                enabled: true,
+                channel: 'email',
+                smtpHost: 'smtp.example.com',
+                smtpPort: 465,
+                smtpSecure: true,
+                smtpUser: 'bot@example.com',
+                smtpPass: 'secret',
+                emailFrom: 'bot@example.com',
+                emailTo: 'user@example.com',
+                title: '经营汇报',
+                hourlyEnabled: true,
+                hourlyMinute: 10,
+                dailyEnabled: true,
+                dailyHour: 20,
+                dailyMinute: 30,
+                retentionDays: 15,
+            },
+        }, { accountId: '1009' });
+
+        await store.flushGlobalConfigSave();
+
+        const storeFile = path.join(tempRoot, 'data', 'store.json');
+        const stored = JSON.parse(fs.readFileSync(storeFile, 'utf8'));
+        assert.equal(stored.accountConfigs['1009'].intervals.farmMin, 45);
+        assert.equal(stored.accountConfigs['1009'].intervals.friendMax, 240);
+        assert.equal(stored.accountConfigs['1009'].reportConfig.channel, 'email');
+        assert.equal(stored.accountConfigs['1009'].reportConfig.smtpHost, 'smtp.example.com');
+        assert.equal(stored.accountConfigs['1009'].reportConfig.emailTo, 'user@example.com');
+
+        delete require.cache[storeModulePath];
+        delete require.cache[systemSettingsModulePath];
+
+        store = require(storeModulePath);
+
+        assert.equal(store.getIntervals('1009').farmMin, 45);
+        assert.equal(store.getIntervals('1009').friendMax, 240);
+        assert.equal(store.getReportConfig('1009').channel, 'email');
+        assert.equal(store.getReportConfig('1009').smtpHost, 'smtp.example.com');
+        assert.equal(store.getReportConfig('1009').emailTo, 'user@example.com');
+        assert.equal(store.getReportConfig('1009').retentionDays, 15);
+    } finally {
+        delete require.cache[storeModulePath];
+        delete require.cache[systemSettingsModulePath];
+        restoreRuntimePaths();
+        restoreMysql();
+        fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+});
+
+test('applyConfigSnapshot updates in-memory timing config for runtime sync without persisting', async () => {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'store-runtime-timing-'));
+    const restoreRuntimePaths = mockModule(runtimePathsModulePath, createRuntimePathsMock(tempRoot));
+    const mysqlMock = createMysqlMock();
+    const restoreMysql = mockModule(mysqlDbModulePath, mysqlMock);
+
+    try {
+        delete require.cache[storeModulePath];
+        delete require.cache[systemSettingsModulePath];
+
+        const store = require(storeModulePath);
+        await store.initStoreRuntime();
+        const beforePersisted = JSON.stringify(mysqlMock.__state.systemSettings.global_config || null);
+
+        assert.equal(store.getTimingConfig().ghostingMinMin, 5);
+        assert.equal(store.getTimingConfig().ghostingMaxMin, 10);
+
+        store.applyConfigSnapshot({
+            timingConfig: {
+                ghostingMinMin: 7,
+                ghostingMaxMin: 9,
+                ghostingProbability: 0.4,
+            },
+        }, { persist: false });
+
+        assert.equal(store.getTimingConfig().ghostingMinMin, 7);
+        assert.equal(store.getTimingConfig().ghostingMaxMin, 9);
+        assert.equal(store.getTimingConfig().ghostingProbability, 0.4);
+        assert.equal(JSON.stringify(mysqlMock.__state.systemSettings.global_config || null), beforePersisted);
     } finally {
         delete require.cache[storeModulePath];
         delete require.cache[systemSettingsModulePath];

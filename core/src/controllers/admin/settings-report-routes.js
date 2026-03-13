@@ -271,6 +271,10 @@ function registerSettingsReportRoutes({
             if (typeof store.flushGlobalConfigSave === 'function') {
                 await store.flushGlobalConfigSave();
             }
+            const provider = getProvider ? getProvider() : null;
+            if (provider && typeof provider.syncSystemTimingConfig === 'function') {
+                await provider.syncSystemTimingConfig();
+            }
             adminLogger.info('时间参数配置已更新', { config: data });
             res.json({ ok: true, data });
         } catch (e) {
@@ -329,7 +333,7 @@ function registerSettingsReportRoutes({
                 return res.status(400).json({ ok: false, error: '缺少账号标识 (x-account-id)' });
             }
             const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-            const pageSize = Math.max(1, Math.min(100, Number.parseInt(req.query.pageSize !== undefined ? req.query.pageSize : req.query.limit, 10) || 10));
+            const pageSize = 3;
             const mode = String(req.query.mode || '').trim().toLowerCase();
             const status = String(req.query.status || '').trim().toLowerCase();
             const sortOrder = String(req.query.sortOrder !== undefined ? req.query.sortOrder : (req.query.order || '')).trim().toLowerCase();

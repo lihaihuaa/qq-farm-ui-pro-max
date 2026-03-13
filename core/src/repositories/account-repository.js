@@ -229,6 +229,8 @@ class AccountRepository {
     async create(accountData) {
         try {
             return await transaction(async (connection) => {
+                const normalizedUsername = String(accountData.username || '').trim() || null;
+
                 // 1. 插入账号
                 const [accountResult] = await connection.execute(`
                     INSERT INTO accounts (uin, nick, name, platform, running, username, avatar, auth_data)
@@ -239,7 +241,7 @@ class AccountRepository {
                     accountData.name || '',
                     accountData.platform || 'qq',
                     0,
-                    accountData.username || '',
+                    normalizedUsername,
                     accountData.avatar || null,
                     accountData.auth_data ? JSON.stringify(accountData.auth_data) : '{}'
                 ]);

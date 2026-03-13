@@ -21,6 +21,7 @@ function assertRequiredText(name, value) {
  * @param {string} payload.token 必填 推送 token
  * @param {string} payload.title 必填 推送标题
  * @param {string} payload.content 必填 推送内容
+ * @param {string} [payload.html] HTML 内容（channel=email 时优先显示，content 作为纯文本兜底）
  * @param {string} [payload.smtpHost] SMTP 服务器地址（channel=email 时使用）
  * @param {number|string} [payload.smtpPort] SMTP 端口（channel=email 时使用）
  * @param {boolean|string} [payload.smtpSecure] SMTP 是否直连 TLS（channel=email 时使用）
@@ -39,6 +40,7 @@ async function sendPushooMessage(payload = {}) {
         return await sendEmailMessage({
             title,
             content,
+            html: payload.html,
             smtpHost: payload.smtpHost,
             smtpPort: payload.smtpPort,
             smtpSecure: payload.smtpSecure,

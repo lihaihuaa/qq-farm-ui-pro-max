@@ -136,6 +136,7 @@ copy_deploy_bundle_files() {
     cp "${PROJECT_ROOT}/scripts/deploy/fresh-install.sh" "${target_dir}/fresh-install.sh"
     cp "${PROJECT_ROOT}/scripts/deploy/update-app.sh" "${target_dir}/update-app.sh"
     cp "${PROJECT_ROOT}/scripts/deploy/install-or-update.sh" "${target_dir}/install-or-update.sh"
+    cp "${PROJECT_ROOT}/scripts/deploy/safe-update.sh" "${target_dir}/safe-update.sh"
     cp "${PROJECT_ROOT}/scripts/deploy/update-agent.sh" "${target_dir}/update-agent.sh"
     cp "${PROJECT_ROOT}/scripts/deploy/install-update-agent-service.sh" "${target_dir}/install-update-agent-service.sh"
     cp "${PROJECT_ROOT}/scripts/deploy/manual-config-wizard.sh" "${target_dir}/manual-config-wizard.sh"
@@ -202,7 +203,7 @@ set -a
 . "\${SCRIPT_DIR}/.env"
 set +a
 
-chmod +x "\${SCRIPT_DIR}/fresh-install.sh" "\${SCRIPT_DIR}/update-app.sh" "\${SCRIPT_DIR}/install-or-update.sh" "\${SCRIPT_DIR}/update-agent.sh" "\${SCRIPT_DIR}/install-update-agent-service.sh" "\${SCRIPT_DIR}/manual-config-wizard.sh" "\${SCRIPT_DIR}/stack-layout.sh" "\${SCRIPT_DIR}/verify-stack.sh" "\${SCRIPT_DIR}/repair-mysql.sh" "\${SCRIPT_DIR}/repair-deploy.sh" "\${SCRIPT_DIR}/quick-deploy.sh"
+chmod +x "\${SCRIPT_DIR}/fresh-install.sh" "\${SCRIPT_DIR}/update-app.sh" "\${SCRIPT_DIR}/install-or-update.sh" "\${SCRIPT_DIR}/safe-update.sh" "\${SCRIPT_DIR}/update-agent.sh" "\${SCRIPT_DIR}/install-update-agent-service.sh" "\${SCRIPT_DIR}/manual-config-wizard.sh" "\${SCRIPT_DIR}/stack-layout.sh" "\${SCRIPT_DIR}/verify-stack.sh" "\${SCRIPT_DIR}/repair-mysql.sh" "\${SCRIPT_DIR}/repair-deploy.sh" "\${SCRIPT_DIR}/quick-deploy.sh"
 bash "\${SCRIPT_DIR}/install-or-update.sh" --non-interactive --image-archive "\${SCRIPT_DIR}/${archive_name}"
 INSTALL_EOF
 

@@ -63,6 +63,9 @@ function createMysqlMock(initialState = {}) {
     }
 
     return {
+        isMysqlInitialized() {
+            return true;
+        },
         getPool() {
             return {
                 query: handleQuery,
@@ -195,6 +198,31 @@ test('account bag preferences persist plantable seed snapshot and mall resolver 
                 lastAlertReason: 'normal:cache_stale',
             },
         });
+    } finally {
+        delete require.cache[accountBagPreferencesModulePath];
+        restoreMysql();
+    }
+});
+
+test('account bag preferences read returns null before mysql initialization', async () => {
+    let getPoolCalls = 0;
+    const restoreMysql = mockModule(mysqlDbModulePath, {
+        isMysqlInitialized() {
+            return false;
+        },
+        getPool() {
+            getPoolCalls += 1;
+            throw new Error('MySQL pool is not initialized. Call initMysql() first.');
+        },
+    });
+
+    try {
+        delete require.cache[accountBagPreferencesModulePath];
+        const { getAccountBagPreferences } = require(accountBagPreferencesModulePath);
+
+        const loaded = await getAccountBagPreferences('303');
+        assert.equal(loaded, null);
+        assert.equal(getPoolCalls, 0);
     } finally {
         delete require.cache[accountBagPreferencesModulePath];
         restoreMysql();

@@ -1,4 +1,4 @@
-const { getPool } = require('./mysql-db');
+const { getPool, isMysqlInitialized } = require('./mysql-db');
 const { createModuleLogger } = require('./logger');
 
 const logger = createModuleLogger('account-bag-preferences');
@@ -182,8 +182,9 @@ function normalizeAccountBagPreferences(input = {}) {
 
 async function getAccountBagPreferences(accountId) {
     const normalizedAccountId = String(accountId || '').trim();
+    if (!normalizedAccountId || !isMysqlInitialized()) return null;
     const pool = getPool();
-    if (!normalizedAccountId || !pool) return null;
+    if (!pool) return null;
 
     try {
         const [rows] = await pool.query(

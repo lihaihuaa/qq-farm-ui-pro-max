@@ -117,7 +117,6 @@ test('trial card config migrates from legacy store.json into MySQL and later upd
         },
     };
     fs.writeFileSync(storeFile, JSON.stringify(legacyPayload, null, 2), 'utf8');
-    const originalFileText = fs.readFileSync(storeFile, 'utf8');
 
     const restoreRuntimePaths = mockModule(runtimePathsModulePath, createRuntimePathsMock(tempRoot));
     const mysqlMock = createMysqlMock();
@@ -153,7 +152,19 @@ test('trial card config migrates from legacy store.json into MySQL and later upd
             adminRenewEnabled: false,
             userRenewEnabled: true,
         });
-        assert.equal(fs.readFileSync(storeFile, 'utf8'), originalFileText);
+        const persistedStoreSnapshot = JSON.parse(fs.readFileSync(storeFile, 'utf8'));
+        assert.deepEqual(persistedStoreSnapshot.trialCardConfig, {
+            enabled: false,
+            dailyLimit: 12,
+            cooldownMs: 3 * 60 * 60 * 1000,
+            days: 14,
+            maxAccounts: 5,
+            adminRenewEnabled: false,
+            userRenewEnabled: true,
+        });
+        assert.equal(typeof persistedStoreSnapshot.defaultAccountConfig, 'object');
+        assert.equal(typeof persistedStoreSnapshot.accountConfigIdentityArchive, 'object');
+        assert.deepEqual(persistedStoreSnapshot.accountConfigs, {});
 
         delete require.cache[storeModulePath];
         delete require.cache[systemSettingsModulePath];

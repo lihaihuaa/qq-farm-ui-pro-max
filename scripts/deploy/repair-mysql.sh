@@ -321,7 +321,7 @@ backup_database() {
     print_info "备份当前 MySQL 数据到 ${backup_file}"
     exec_mode="$(detect_mysql_exec_mode)"
     mysql_cli_exec "${exec_mode}" \
-        mysqldump --protocol=TCP -h 127.0.0.1 -u root -p"${MYSQL_ROOT_PASSWORD}" "${MYSQL_DATABASE}" > "${backup_file}"
+        mysqldump --protocol=TCP -h 127.0.0.1 --single-transaction --quick --skip-lock-tables -u root -p"${MYSQL_ROOT_PASSWORD}" "${MYSQL_DATABASE}" > "${backup_file}"
     print_success "数据库备份完成"
 }
 

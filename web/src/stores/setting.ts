@@ -568,7 +568,7 @@ export const useSettingStore = defineStore('setting', () => {
   const systemUpdateJobs = ref<SystemUpdateJob[]>([])
   const reportLogPagination = ref<ReportLogPagination>({
     page: 1,
-    pageSize: 10,
+    pageSize: 3,
     total: 0,
     totalPages: 1,
   })
@@ -760,12 +760,12 @@ export const useSettingStore = defineStore('setting', () => {
   async function fetchReportLogs(accountId: string, options: { page?: number, pageSize?: number, limit?: number, mode?: string, status?: string, sortOrder?: string, keyword?: string } = {}) {
     if (!accountId) {
       reportLogs.value = []
-      reportLogPagination.value = { page: 1, pageSize: 10, total: 0, totalPages: 1 }
+      reportLogPagination.value = { page: 1, pageSize: 3, total: 0, totalPages: 1 }
       return reportLogPagination.value
     }
     try {
       const page = options.page ?? 1
-      const pageSize = options.pageSize ?? options.limit ?? 10
+      const pageSize = 3
       const { data } = await api.get('/api/reports/history', {
         headers: { 'x-account-id': accountId },
         params: {
@@ -788,13 +788,13 @@ export const useSettingStore = defineStore('setting', () => {
         return reportLogPagination.value
       }
       reportLogs.value = []
-      reportLogPagination.value = { page: 1, pageSize: Number(pageSize) || 10, total: 0, totalPages: 1 }
+      reportLogPagination.value = { page: 1, pageSize: Number(pageSize) || 3, total: 0, totalPages: 1 }
       return reportLogPagination.value
     }
     catch (e) {
       console.error('获取经营汇报历史失败:', e)
       reportLogs.value = []
-      reportLogPagination.value = { page: 1, pageSize: 10, total: 0, totalPages: 1 }
+      reportLogPagination.value = { page: 1, pageSize: 3, total: 0, totalPages: 1 }
       return reportLogPagination.value
     }
   }
@@ -844,7 +844,7 @@ export const useSettingStore = defineStore('setting', () => {
       })
       if (data && data.ok) {
         reportLogs.value = []
-        reportLogPagination.value = { page: 1, pageSize: reportLogPagination.value.pageSize || 10, total: 0, totalPages: 1 }
+        reportLogPagination.value = { page: 1, pageSize: reportLogPagination.value.pageSize || 3, total: 0, totalPages: 1 }
         reportLogStats.value = createDefaultReportLogStats()
         return { ok: true, data: data.data }
       }

@@ -58,6 +58,7 @@ APP_IMAGE_SELECTED=""
 CURRENT_LINK_EXPLICIT=0
 APP_CONTAINER_NAME_EXPLICIT=0
 STACK_DIR_NAME=""
+APP_STOPPED_FOR_DB_REPAIR=0
 
 if [ -n "${CURRENT_LINK_INPUT}" ]; then
     CURRENT_LINK_EXPLICIT=1
@@ -105,7 +106,19 @@ is_worker_role() {
     [ "$(current_app_role)" = "worker" ]
 }
 
-trap 'print_error "主程序更新失败，请检查上方日志。"' ERR
+handle_update_error() {
+    local exit_code="$?"
+
+    if [ "${APP_STOPPED_FOR_DB_REPAIR}" = "1" ]; then
+        print_warning "更新失败，尝试恢复原主程序容器..."
+        "${DOCKER[@]}" start "${APP_CONTAINER_NAME}" >/dev/null 2>&1 || true
+    fi
+
+    print_error "主程序更新失败，请检查上方日志。"
+    exit "${exit_code}"
+}
+
+trap handle_update_error ERR
 
 parse_args() {
     while [ "$#" -gt 0 ]; do
@@ -180,6 +193,9 @@ copy_file_if_needed() {
     local target_path="$2"
 
     if [ "${source_path}" = "${target_path}" ]; then
+        return 0
+    fi
+    if [ -e "${source_path}" ] && [ -e "${target_path}" ] && [ "${source_path}" -ef "${target_path}" ]; then
         return 0
     fi
 
@@ -767,6 +783,7 @@ sync_bundle() {
     local bundle_fresh=""
     local bundle_quick=""
     local bundle_install_or_update=""
+    local bundle_safe_update=""
     local bundle_update_agent=""
     local bundle_install_update_agent=""
     local bundle_manual_config_wizard=""
@@ -795,6 +812,7 @@ sync_bundle() {
         bundle_fresh="${SCRIPT_DIR}/fresh-install.sh"
         bundle_quick="${SCRIPT_DIR}/quick-deploy.sh"
         bundle_install_or_update="${SCRIPT_DIR}/install-or-update.sh"
+        bundle_safe_update="${SCRIPT_DIR}/safe-update.sh"
         bundle_update_agent="${SCRIPT_DIR}/update-agent.sh"
         bundle_install_update_agent="${SCRIPT_DIR}/install-update-agent-service.sh"
         bundle_manual_config_wizard="${SCRIPT_DIR}/manual-config-wizard.sh"
@@ -813,6 +831,7 @@ sync_bundle() {
         bundle_fresh="${bundle_dir}/fresh-install.sh"
         bundle_quick="${bundle_dir}/quick-deploy.sh"
         bundle_install_or_update="${bundle_dir}/install-or-update.sh"
+        bundle_safe_update="${bundle_dir}/safe-update.sh"
         bundle_update_agent="${bundle_dir}/update-agent.sh"
         bundle_install_update_agent="${bundle_dir}/install-update-agent-service.sh"
         bundle_manual_config_wizard="${bundle_dir}/manual-config-wizard.sh"
@@ -847,6 +866,11 @@ sync_bundle() {
             copy_file_if_needed "${bundle_install_or_update}" "${target_dir}/install-or-update.sh"
         else
             download_file "scripts/deploy/install-or-update.sh" "${target_dir}/install-or-update.sh"
+        fi
+        if [ -n "${bundle_safe_update}" ] && [ -f "${bundle_safe_update}" ]; then
+            copy_file_if_needed "${bundle_safe_update}" "${target_dir}/safe-update.sh"
+        else
+            download_file "scripts/deploy/safe-update.sh" "${target_dir}/safe-update.sh"
         fi
         if [ -n "${bundle_update_agent}" ] && [ -f "${bundle_update_agent}" ]; then
             copy_file_if_needed "${bundle_update_agent}" "${target_dir}/update-agent.sh"
@@ -889,6 +913,7 @@ sync_bundle() {
         download_file "scripts/deploy/fresh-install.sh" "${target_dir}/fresh-install.sh"
         download_file "scripts/deploy/quick-deploy.sh" "${target_dir}/quick-deploy.sh"
         download_file "scripts/deploy/install-or-update.sh" "${target_dir}/install-or-update.sh"
+        download_file "scripts/deploy/safe-update.sh" "${target_dir}/safe-update.sh"
         download_file "scripts/deploy/update-agent.sh" "${target_dir}/update-agent.sh"
         download_file "scripts/deploy/install-update-agent-service.sh" "${target_dir}/install-update-agent-service.sh"
         download_file "scripts/deploy/manual-config-wizard.sh" "${target_dir}/manual-config-wizard.sh"
@@ -896,7 +921,7 @@ sync_bundle() {
         download_file "scripts/deploy/verify-stack.sh" "${target_dir}/verify-stack.sh"
     fi
 
-    chmod +x "${target_dir}/update-app.sh" "${target_dir}/repair-mysql.sh" "${target_dir}/repair-deploy.sh" "${target_dir}/fresh-install.sh" "${target_dir}/quick-deploy.sh" "${target_dir}/install-or-update.sh" "${target_dir}/update-agent.sh" "${target_dir}/install-update-agent-service.sh" "${target_dir}/manual-config-wizard.sh" "${target_dir}/stack-layout.sh" "${target_dir}/verify-stack.sh"
+    chmod +x "${target_dir}/update-app.sh" "${target_dir}/repair-mysql.sh" "${target_dir}/repair-deploy.sh" "${target_dir}/fresh-install.sh" "${target_dir}/quick-deploy.sh" "${target_dir}/install-or-update.sh" "${target_dir}/safe-update.sh" "${target_dir}/update-agent.sh" "${target_dir}/install-update-agent-service.sh" "${target_dir}/manual-config-wizard.sh" "${target_dir}/stack-layout.sh" "${target_dir}/verify-stack.sh"
 }
 
 wait_for_app() {
@@ -925,6 +950,19 @@ wait_for_app() {
 
         sleep 5
     done
+}
+
+stop_app_before_db_repair() {
+    local status="missing"
+
+    status="$("${DOCKER[@]}" inspect -f '{{.State.Status}}' "${APP_CONTAINER_NAME}" 2>/dev/null || true)"
+    if [ "${status}" != "running" ]; then
+        return 0
+    fi
+
+    print_info "数据库修复前先停止主程序，避免在线改表与写入并发冲突。"
+    "${DOCKER[@]}" stop "${APP_CONTAINER_NAME}" >/dev/null
+    APP_STOPPED_FOR_DB_REPAIR=1
 }
 
 apply_admin_password_override() {
@@ -1037,12 +1075,14 @@ main() {
     if [ "${SKIP_DB_REPAIR}" = "1" ] || [ "${SKIP_DB_REPAIR}" = "true" ]; then
         print_warning "检测到 SKIP_DB_REPAIR=${SKIP_DB_REPAIR}，跳过数据库修复步骤。"
     else
+        stop_app_before_db_repair
         print_info "先执行旧 MySQL 结构修复脚本..."
         bash "${DEPLOY_DIR}/repair-mysql.sh" --deploy-dir "${DEPLOY_DIR}"
     fi
     compose_pull_with_retry
     "${DOCKER[@]}" compose up -d --no-deps "${COMPOSE_APP_SERVICE}"
     wait_for_app 240
+    APP_STOPPED_FOR_DB_REPAIR=0
     apply_admin_password_override
 
     new_image="$("${DOCKER[@]}" inspect -f '{{.Image}}' "${APP_CONTAINER_NAME}" 2>/dev/null || true)"
@@ -1063,6 +1103,7 @@ main() {
     echo "新镜像 ID: ${new_image:-unknown}"
     echo "未变更服务: qq-farm-mysql / qq-farm-redis / qq-farm-ipad860"
     echo "统一安装/更新入口: ${DEPLOY_DIR}/install-or-update.sh"
+    echo "安全升级脚本: ${DEPLOY_DIR}/safe-update.sh"
     echo "部署包修复脚本: ${DEPLOY_DIR}/repair-deploy.sh"
     echo "数据库修复脚本: ${DEPLOY_DIR}/repair-mysql.sh"
     echo "手动修复向导: ${DEPLOY_DIR}/manual-config-wizard.sh"

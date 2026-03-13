@@ -131,7 +131,7 @@ test('user preferences persist current account selection per user', async () => 
                 status: 'all',
                 keyword: '',
                 sortOrder: 'desc',
-                pageSize: 10,
+                pageSize: 3,
             },
             cardsViewState: {
                 keyword: '',
@@ -162,7 +162,7 @@ test('user preferences persist current account selection per user', async () => 
         assert.deepEqual(loaded.accountsActionHistory, []);
         assert.equal(loaded.dashboardViewState.module, '');
         assert.equal(loaded.analyticsViewState.sortKey, 'exp');
-        assert.equal(loaded.reportHistoryViewState.pageSize, 10);
+        assert.equal(loaded.reportHistoryViewState.pageSize, 3);
         assert.equal(loaded.cardsViewState.pageSize, 20);
         assert.equal(loaded.systemLogsViewState.level, '');
 
@@ -311,7 +311,7 @@ test('user preferences merge view state updates without clearing current account
             status: 'failed',
             keyword: '邮件',
             sortOrder: 'asc',
-            pageSize: 50,
+            pageSize: 3,
         });
         assert.deepEqual(saved.cardsViewState, {
             keyword: '批次A',
@@ -467,7 +467,7 @@ test('user preferences merge accounts page state without clearing existing page 
         assert.equal(loaded.accountsActionHistory[0].targetLabel, '视图：表格');
         assert.equal(loaded.dashboardViewState.module, 'task');
         assert.equal(loaded.analyticsViewState.sortKey, 'level');
-        assert.equal(loaded.reportHistoryViewState.pageSize, 20);
+        assert.equal(loaded.reportHistoryViewState.pageSize, 3);
         assert.equal(loaded.cardsViewState.page, 4);
         assert.equal(loaded.systemLogsViewState.pageSize, 50);
         assert.equal(loaded.accountsViewState.viewMode, 'table');

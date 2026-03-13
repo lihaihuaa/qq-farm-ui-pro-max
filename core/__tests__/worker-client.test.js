@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { version: packageVersion } = require('../package.json');
 
 const { WorkerClient, buildAssignedAccountFingerprint } = require('../src/cluster/worker-client');
 
@@ -118,7 +119,7 @@ test('WorkerClient init wires jobs, runtime engine, shutdown handlers and master
             nodeId: calls[5][2].auth.nodeId,
             role: 'worker',
             status: 'ready',
-            version: '4.5.18',
+            version: packageVersion,
             assignedCount: 0,
             updatedAt: socket.emitted[1][1].updatedAt,
         }],

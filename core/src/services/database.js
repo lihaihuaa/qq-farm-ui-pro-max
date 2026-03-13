@@ -267,6 +267,9 @@ async function findRelatedAccountIdsForFriendsCache(accountId, options = {}) {
     if (!normalizedAccountId || !platform || (!selfName && identityRefs.size === 0)) {
         return [];
     }
+    if (!isMysqlInitialized()) {
+        return [];
+    }
 
     try {
         const pool = getPool();
@@ -706,10 +709,10 @@ function createEmptyReportLogStats() {
 async function getReportLogs(accountId, options = {}) {
     const pool = getPool();
     if (!pool) {
-        return { items: [], total: 0, page: 1, pageSize: 10, totalPages: 1 };
+        return { items: [], total: 0, page: 1, pageSize: 3, totalPages: 1 };
     }
     const opts = (options && typeof options === 'object') ? options : { pageSize: options };
-    const pageSize = Math.max(1, Math.min(100, Number.parseInt(opts.pageSize !== undefined ? opts.pageSize : opts.limit, 10) || 10));
+    const pageSize = 3;
     const page = Math.max(1, Number.parseInt(opts.page, 10) || 1);
     const offset = (page - 1) * pageSize;
     const { whereSql, params, filters } = buildReportLogWhereClause(accountId, opts);
